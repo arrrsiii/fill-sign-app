@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Fill & Sign</title>
+<style>
+  :root{
+    --paper:#ffffff;
+    --paper-dim:#f2f2f0;
+    --ink:#14213d;
+    --ink-soft:#5b6472;
+    --line:#dfe1e6;
+    --stamp:#b3261e;
+    --stamp-dim:#f6e6e5;
+    --signed:#1f7a5c;
+    --signed-dim:#e6f2ee;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--paper-dim);
+    color:var(--ink);
+    overflow:hidden;
+  }
+  h1,h2,h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-weight:600;margin:0;}
+  button{font-family:inherit;}
+  #app{height:100%;display:flex;flex-direction:column;}
+
+  /* ---------- header ---------- */
+  header{
+    flex:0 0 auto;
+    background:var(--paper);
+    border-bottom:1px solid var(--line);
+    padding:14px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    min-height:52px;
+  }
+  header .doc-name{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;}
+  header .doc-name.placeholder{color:var(--ink-soft);font-weight:400;}
+  header .page-indicator{font-size:13px;color:var(--ink-soft);}
+  header .back-btn{background:none;border:none;color:var(--stamp);font-size:15px;padding:4px 0;cursor:pointer;}
+
+  main{flex:1 1 auto;position:relative;overflow:hidden;}
+  .screen{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden;}
+  .screen.active{display:flex;}
+
+  /* ---------- home ---------- */
+  #screen-home{align-items:stretch;justify-content:flex-start;padding:28px 20px;overflow-y:auto;}
+  .home-hero{margin-bottom:28px;}
+  .home-hero h1{font-size:26px;line-height:1.25;color:var(--ink);}
+  .home-hero p{margin:8px 0 0;color:var(--ink-soft);font-size:14px;line-height:1.5;}
+  .upload-btn{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    background:var(--ink);color:#fff;border:none;border-radius:var(--radius);
+    padding:18px;font-size:16px;font-weight:600;cursor:pointer;width:100%;
+  }
+  .upload-btn:active{opacity:0.85;}
+  .recents{margin-top:32px;}
+  .recents h2{font-size:13px;text-transform:none;color:var(--ink-soft);font-weight:600;margin-bottom:10px;}
+  .recent-item{
+    display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);
+    border-radius:var(--radius);background:var(--paper);margin-bottom:8px;font-size:14px;
+  }
+  .recent-empty{font-size:13px;color:var(--ink-soft);font-style:italic;}
+  #file-input{display:none;}
+
+  /* ---------- editor ---------- */
+  #screen-editor{background:var(--paper-dim);}
+  .pdf-scroll{flex:1;overflow:auto;display:flex;justify-content:center;padding:16px;}
+  #pdf-wrapper{position:relative;box-shadow:0 2px 14px rgba(20,33,61,0.15);background:#fff;height:fit-content;}
+  #pdf-canvas{display:block;touch-action:pan-y;}
+  #marker-layer{position:absolute;inset:0;}
+  .marker{
+    position:absolute;
+    display:flex;align-items:center;
+    cursor:grab;
+    user-select:none;
+    touch-action:none;
+  }
+  .marker.text-marker{
+    background:var(--signed-dim);
+    border:1.5px solid var(--signed);
+    border-radius:6px;
+    padding:3px 8px;
+    color:var(--ink);
+    font-size:14px;
+    white-space:nowrap;
+  }
+  .marker.sig-marker{
+    border:1.5px dashed var(--stamp);
+    border-radius:6px;
+    background:rgba(255,255,255,0.5);
+  }
+  .marker.sig-marker img{width:100%;height:100%;object-fit:contain;pointer-events:none;}
+  .marker .del{
+    position:absolute;top:-9px;right:-9px;width:18px;height:18px;border-radius:50%;
+    background:var(--stamp);color:#fff;font-size:12px;line-height:18px;text-align:center;
+    cursor:pointer;font-weight:700;
+  }
+  .placing-hint{
+    position:absolute;top:10px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:8px 14px;border-radius:20px;font-size:13px;
+    z-index:5;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,0.2);
+  }
+  .page-nav{
+    flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:16px;
+    padding:8px;background:var(--paper);border-top:1px solid var(--line);font-size:14px;
+  }
+  .page-nav button{background:none;border:1px solid var(--line);border-radius:6px;padding:6px 12px;cursor:pointer;}
+  .page-nav button:disabled{opacity:0.35;}
+  .toolbar-bottom{
+    flex:0 0 auto;display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    background:var(--paper);border-top:1px solid var(--line);
+  }
+  .tool-btn{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+    border:none;background:var(--paper-dim);border-radius:var(--radius);padding:10px 4px;
+    font-size:12px;font-weight:600;color:var(--ink);cursor:pointer;
+  }
+  .tool-btn.active{background:var(--signed-dim);color:var(--signed);}
+  .tool-btn .icon{font-size:18px;}
+  .tool-btn.primary{background:var(--ink);color:#fff;}
+
+  /* inline text input for placing text */
+  #text-input-box{
+    position:absolute;z-index:20;background:#fff;border:2px solid var(--signed);
+    border-radius:6px;display:flex;align-items:center;box-shadow:0 4px 14px rgba(0,0,0,0.25);
+  }
+  #text-input-box input{
+    border:none;outline:none;font-size:16px;padding:8px;min-width:120px;font-family:inherit;
+  }
+  #text-input-box button{
+    border:none;background:var(--signed);color:#fff;padding:8px 12px;height:100%;
+    font-weight:700;cursor:pointer;
+  }
+
+  /* ---------- signature modal ---------- */
+  .modal{position:fixed;inset:0;background:rgba(20,33,61,0.55);z-index:50;display:flex;align-items:flex-end;justify-content:center;}
+  .modal.hidden{display:none;}
+  .modal-card{background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:480px;padding:20px;}
+  .modal-card h3{font-size:17px;margin-bottom:4px;}
+  .modal-card p.hint{color:var(--ink-soft);font-size:13px;margin:0 0 14px;}
+  #sig-canvas{width:100%;height:180px;border:1.5px dashed var(--line);border-radius:10px;background:var(--paper-dim);touch-action:none;}
+  .modal-actions{display:flex;gap:10px;margin-top:14px;}
+  .modal-actions button{flex:1;padding:13px;border-radius:var(--radius);border:none;font-weight:600;font-size:14px;cursor:pointer;}
+  .btn-clear{background:var(--paper-dim);color:var(--ink);}
+  .btn-use{background:var(--stamp);color:#fff;}
+  .btn-cancel{background:none;color:var(--ink-soft);text-align:center;margin-top:10px;width:100%;border:none;font-size:13px;padding:6px;cursor:pointer;}
+
+  /* ---------- review ---------- */
+  #screen-review{align-items:center;justify-content:flex-start;padding:20px;overflow-y:auto;}
+  .review-badge{
+    display:flex;align-items:center;gap:8px;background:var(--signed-dim);color:var(--signed);
+    padding:10px 16px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:18px;
+  }
+  #review-canvas{max-width:100%;box-shadow:0 2px 14px rgba(20,33,61,0.15);border-radius:2px;}
+  .review-actions{width:100%;max-width:420px;display:flex;flex-direction:column;gap:10px;margin-top:22px;}
+  .review-actions button{padding:16px;border-radius:var(--radius);border:none;font-weight:600;font-size:15px;cursor:pointer;}
+  .btn-share{background:var(--ink);color:#fff;}
+  .btn-download{background:var(--paper);color:var(--ink);border:1.5px solid var(--line) !important;}
+  .btn-restart{background:none;color:var(--stamp);}
+
+  .spinner-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:60px 20px;color:var(--ink-soft);font-size:14px;}
+  .spinner{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--stamp);border-radius:50%;animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <button class="back-btn" id="back-btn" style="visibility:hidden;">‹ Back</button>
+    <span class="doc-name placeholder" id="doc-name">Fill &amp; Sign</span>
+    <span class="page-indicator" id="page-indicator"></span>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section id="screen-home" class="screen active">
+      <div class="home-hero">
+        <h1>Fill and sign, right from your phone</h1>
+        <p>Import a PDF, tap in your details, sign with your finger, and send it back out — no laptop required.</p>
+      </div>
+      <button class="upload-btn" id="upload-btn">
+        <span>📄</span> Upload a PDF
+      </button>
+      <input type="file" id="file-input" accept="application/pdf">
+      <div class="recents">
+        <h2>Recent</h2>
+        <div class="recent-empty" id="recent-empty">Nothing yet — documents you open this session will show up here.</div>
+        <div id="recent-list"></div>
+      </div>
+    </section>
+
+    <!-- EDITOR -->
+    <section id="screen-editor" class="screen">
+      <div class="pdf-scroll">
+        <div id="pdf-wrapper">
+          <canvas id="pdf-canvas"></canvas>
+          <div id="marker-layer"></div>
+          <div class="placing-hint" id="placing-hint" style="display:none;"></div>
+        </div>
+      </div>
+      <div class="page-nav">
+        <button id="prev-page">‹ Prev</button>
+        <span id="page-label">Page 1</span>
+        <button id="next-page">Next ›</button>
+      </div>
+      <div class="toolbar-bottom">
+        <button class="tool-btn" id="tool-text">
+          <span class="icon">＋Ａ</span> Add text
+        </button>
+        <button class="tool-btn" id="tool-sig">
+          <span class="icon">✎</span> Sign
+        </button>
+        <button class="tool-btn primary" id="tool-review">
+          <span class="icon">✓</span> Review &amp; export
+        </button>
+      </div>
+    </section>
+
+    <!-- REVIEW -->
+    <section id="screen-review" class="screen">
+      <div id="review-body" style="width:100%;display:flex;flex-direction:column;align-items:center;">
+        <div class="spinner-wrap" id="review-loading">
+          <div class="spinner"></div>
+          <div>Flattening your document…</div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- SIGNATURE MODAL -->
+<div class="modal hidden" id="sig-modal">
+  <div class="modal-card">
+    <h3>Draw your signature</h3>
+    <p class="hint">Use your finger. You'll place it on the page next.</p>
+    <canvas id="sig-canvas"></canvas>
+    <div class="modal-actions">
+      <button class="btn-clear" id="sig-clear">Clear</button>
+      <button class="btn-use" id="sig-use">Use this signature</button>
+    </div>
+    <button class="btn-cancel" id="sig-cancel">Cancel</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.1.7/signature_pad.umd.min.js"></script>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+// ---------- state ----------
+let currentFile = null;
+let pdfjsDoc = null;       // pdf.js document, for rendering
+let numPages = 1;
+let currentPage = 1;
+let markers = [];          // {id, page, xRatio, yRatio, wRatio, hRatio, type:'text'|'sig', text, dataUrl, fontRatio}
+let pendingSigDataUrl = null;
+let placingMode = null;    // 'text' | 'sig' | null
+let markerIdCounter = 1;
+let sigPad = null;
+let recentDocs = [];
+
+// ---------- elements ----------
+const screens = {
+  home: document.getElementById('screen-home'),
+  editor: document.getElementById('screen-editor'),
+  review: document.getElementById('screen-review'),
+};
+const backBtn = document.getElementById('back-btn');
+const docNameEl = document.getElementById('doc-name');
+const pageIndicatorEl = document.getElementById('page-indicator');
+const fileInput = document.getElementById('file-input');
+const uploadBtn = document.getElementById('upload-btn');
+const canvas = document.getElementById('pdf-canvas');
+const ctx = canvas.getContext('2d');
+const markerLayer = document.getElementById('marker-layer');
+const wrapper = document.getElementById('pdf-wrapper');
+const placingHint = document.getElementById('placing-hint');
+const pageLabel = document.getElementById('page-label');
+const prevPageBtn = document.getElementById('prev-page');
+const nextPageBtn = document.getElementById('next-page');
+const toolText = document.getElementById('tool-text');
+const toolSig = document.getElementById('tool-sig');
+const toolReview = document.getElementById('tool-review');
+const sigModal = document.getElementById('sig-modal');
+const sigCanvas = document.getElementById('sig-canvas');
+const recentListEl = document.getElementById('recent-list');
+const recentEmptyEl = document.getElementById('recent-empty');
+
+function showScreen(name){
+  Object.values(screens).forEach(s=>s.classList.remove('active'));
+  screens[name].classList.add('active');
+  backBtn.style.visibility = name === 'home' ? 'hidden' : 'visible';
+}
+
+backBtn.addEventListener('click', ()=>{
+  if(screens.review.classList.contains('active')){ showScreen('editor'); }
+  else if(screens.editor.classList.contains('active')){ showScreen('home'); }
+});
+
+// ---------- home / upload ----------
+uploadBtn.addEventListener('click', ()=> fileInput.click());
+fileInput.addEventListener('change', async (e)=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  await openFile(f);
+});
+
+async function openFile(f){
+  currentFile = f;
+  docNameEl.textContent = f.name;
+  docNameEl.classList.remove('placeholder');
+  markers = [];
+  currentPage = 1;
+
+  recentDocs.unshift(f.name);
+  recentDocs = recentDocs.slice(0,5);
+  renderRecents();
+
+  const buf = await f.arrayBuffer();
+  pdfjsDoc = await pdfjsLib.getDocument({data:buf}).promise;
+  numPages = pdfjsDoc.numPages;
+  showScreen('editor');
+  await renderPage(1);
+}
+
+function renderRecents(){
+  if(recentDocs.length===0){ recentEmptyEl.style.display='block'; recentListEl.innerHTML=''; return; }
+  recentEmptyEl.style.display='none';
+  recentListEl.innerHTML = recentDocs.map(n=>`<div class="recent-item">📄 ${escapeHtml(n)}</div>`).join('');
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- rendering pages ----------
+async function renderPage(pageNum){
+  currentPage = pageNum;
+  const page = await pdfjsDoc.getPage(pageNum);
+  const containerWidth = Math.min(wrapper.parentElement.clientWidth - 32, 700);
+  const unscaled = page.getViewport({scale:1});
+  const scale = containerWidth / unscaled.width;
+  const viewport = page.getViewport({scale});
+
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  wrapper.style.width = viewport.width + 'px';
+  wrapper.style.height = viewport.height + 'px';
+  markerLayer.style.width = viewport.width + 'px';
+  markerLayer.style.height = viewport.height + 'px';
+
+  await page.render({canvasContext: ctx, viewport}).promise;
+
+  pageLabel.textContent = `Page ${pageNum} of ${numPages}`;
+  pageIndicatorEl.textContent = `${pageNum}/${numPages}`;
+  prevPageBtn.disabled = pageNum<=1;
+  nextPageBtn.disabled = pageNum>=numPages;
+
+  redrawMarkers();
+}
+
+prevPageBtn.addEventListener('click', ()=>{ if(currentPage>1) renderPage(currentPage-1); });
+nextPageBtn.addEventListener('click', ()=>{ if(currentPage<numPages) renderPage(currentPage+1); });
+
+// ---------- placing text ----------
+toolText.addEventListener('click', ()=>{
+  placingMode = placingMode==='text' ? null : 'text';
+  toolText.classList.toggle('active', placingMode==='text');
+  toolSig.classList.remove('active');
+  placingHint.style.display = placingMode==='text' ? 'block' : 'none';
+  placingHint.textContent = 'Tap on the page to add a text field';
+});
+
+toolSig.addEventListener('click', ()=>{
+  openSigModal();
+});
+
+canvas.addEventListener('click', (e)=>{
+  if(placingMode!==('text') && !(placingMode==='sig-place')) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  if(placingMode==='text'){
+    openTextInput(x,y);
+  } else if(placingMode==='sig-place'){
+    placeSignatureMarker(x,y);
+    placingMode = null;
+    placingHint.style.display='none';
+  }
+});
+
+function openTextInput(x,y){
+  const box = document.createElement('div');
+  box.id = 'text-input-box';
+  box.style.left = x+'px';
+  box.style.top = y+'px';
+  box.innerHTML = `<input type="text" placeholder="Type here…" /><button>Add</button>`;
+  wrapper.appendChild(box);
+  const input = box.querySelector('input');
+  input.focus();
+
+  function commit(){
+    const val = input.value.trim();
+    if(val){
+      const fontPx = 16;
+      markers.push({
+        id: markerIdCounter++,
+        page: currentPage,
+        type:'text',
+        text: val,
+        xRatio: x/canvas.width,
+        yRatio: y/canvas.height,
+        fontRatio: fontPx/canvas.height
+      });
+      redrawMarkers();
+    }
+    box.remove();
+    placingMode = null;
+    toolText.classList.remove('active');
+    placingHint.style.display='none';
+  }
+  box.querySelector('button').addEventListener('click', commit);
+  input.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter') commit(); });
+  input.addEventListener('blur', ()=> setTimeout(commit,150));
+}
+
+// ---------- signature ----------
+function openSigModal(){
+  sigModal.classList.remove('hidden');
+  requestAnimationFrame(()=>{
+    const ratio = window.devicePixelRatio || 1;
+    sigCanvas.width = sigCanvas.clientWidth * ratio;
+    sigCanvas.height = sigCanvas.clientHeight * ratio;
+    sigCanvas.getContext('2d').scale(ratio,ratio);
+    sigPad = new SignaturePad(sigCanvas, {backgroundColor:'rgba(0,0,0,0)'});
+  });
+}
+document.getElementById('sig-clear').addEventListener('click', ()=> sigPad && sigPad.clear());
+document.getElementById('sig-cancel').addEventListener('click', ()=>{ sigModal.classList.add('hidden'); });
+document.getElementById('sig-use').addEventListener('click', ()=>{
+  if(!sigPad || sigPad.isEmpty()){ alert('Draw a signature first'); return; }
+  pendingSigDataUrl = sigPad.toDataURL('image/png');
+  sigModal.classList.add('hidden');
+  placingMode = 'sig-place';
+  placingHint.style.display='block';
+  placingHint.textContent = 'Tap where the signature goes';
+});
+
+function placeSignatureMarker(x,y){
+  const w = Math.min(canvas.width*0.35, 160);
+  const h = w*0.42;
+  const px = Math.max(0, x - w/2);
+  const py = Math.max(0, y - h/2);
+  markers.push({
+    id: markerIdCounter++,
+    page: currentPage,
+    type:'sig',
+    dataUrl: pendingSigDataUrl,
+    xRatio: px/canvas.width,
+    yRatio: py/canvas.height,
+    wRatio: w/canvas.width,
+    hRatio: h/canvas.height
+  });
+  redrawMarkers();
+}
+
+// ---------- marker rendering + drag ----------
+function redrawMarkers(){
+  markerLayer.innerHTML = '';
+  markers.filter(m=>m.page===currentPage).forEach(m=>{
+    const el = document.createElement('div');
+    el.className = 'marker ' + (m.type==='text' ? 'text-marker' : 'sig-marker');
+    if(m.type==='text'){
+      el.style.left = (m.xRatio*canvas.width)+'px';
+      el.style.top = (m.yRatio*canvas.height)+'px';
+      el.style.fontSize = (m.fontRatio*canvas.height)+'px';
+      el.textContent = m.text;
+    } else {
+      el.style.left = (m.xRatio*canvas.width)+'px';
+      el.style.top = (m.yRatio*canvas.height)+'px';
+      el.style.width = (m.wRatio*canvas.width)+'px';
+      el.style.height = (m.hRatio*canvas.height)+'px';
+      const img = document.createElement('img');
+      img.src = m.dataUrl;
+      el.appendChild(img);
+    }
+    const del = document.createElement('div');
+    del.className='del';
+    del.textContent='×';
+    del.addEventListener('click',(ev)=>{ ev.stopPropagation(); markers = markers.filter(mm=>mm.id!==m.id); redrawMarkers(); });
+    el.appendChild(del);
+    makeDraggable(el, m);
+    markerLayer.appendChild(el);
+  });
+}
+
+function makeDraggable(el, m){
+  let dragging=false, startX,startY, origLeft, origTop;
+  el.addEventListener('pointerdown',(e)=>{
+    dragging=true; el.setPointerCapture(e.pointerId);
+    startX=e.clientX; startY=e.clientY;
+    origLeft = parseFloat(el.style.left); origTop = parseFloat(el.style.top);
+  });
+  el.addEventListener('pointermove',(e)=>{
+    if(!dragging) return;
+    const dx = e.clientX-startX, dy=e.clientY-startY;
+    const newLeft = Math.min(Math.max(0,origLeft+dx), canvas.width-20);
+    const newTop = Math.min(Math.max(0,origTop+dy), canvas.height-20);
+    el.style.left = newLeft+'px';
+    el.style.top = newTop+'px';
+    m.xRatio = newLeft/canvas.width;
+    m.yRatio = newTop/canvas.height;
+  });
+  el.addEventListener('pointerup',()=>{ dragging=false; });
+}
+
+// ---------- export ----------
+toolReview.addEventListener('click', doExport);
+
+async function doExport(){
+  showScreen('review');
+  document.getElementById('review-loading').style.display='flex';
+  const existing = document.getElementById('review-canvas');
+  if(existing) existing.remove();
+  const oldActions = document.querySelector('.review-actions');
+  if(oldActions) oldActions.remove();
+  const oldBadge = document.querySelector('.review-badge');
+  if(oldBadge) oldBadge.remove();
+
+  const bytes = await currentFile.arrayBuffer();
+  const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+  const helv = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+  const pages = pdfDoc.getPages();
+
+  for(const m of markers){
+    const page = pages[m.page-1];
+    const {width, height} = page.getSize();
+    if(m.type==='text'){
+      const fontSize = m.fontRatio*height;
+      const x = m.xRatio*width;
+      const y = height - (m.yRatio*height) - fontSize*0.8;
+      page.drawText(m.text, {x, y, size:fontSize, font:helv, color:PDFLib.rgb(0.08,0.13,0.24)});
+    } else {
+      const pngBytes = dataUrlToBytes(m.dataUrl);
+      const png = await pdfDoc.embedPng(pngBytes);
+      const w = m.wRatio*width;
+      const h = m.hRatio*height;
+      const x = m.xRatio*width;
+      const y = height - (m.yRatio*height) - h;
+      page.drawImage(png, {x, y, width:w, height:h});
+    }
+  }
+
+  const outBytes = await pdfDoc.save();
+  const blob = new Blob([outBytes], {type:'application/pdf'});
+  const url = URL.createObjectURL(blob);
+  window._lastExportBlob = blob;
+  window._lastExportName = (currentFile.name||'document').replace(/\.pdf$/i,'') + '-signed.pdf';
+
+  // render preview of first affected page (or page 1)
+  const previewDoc = await pdfjsLib.getDocument({data: outBytes.slice()}).promise;
+  const previewPageNum = markers.length ? markers[0].page : 1;
+  const previewPage = await previewDoc.getPage(previewPageNum);
+  const vp1 = previewPage.getViewport({scale:1});
+  const scale = Math.min((window.innerWidth-40)/vp1.width, 1.2);
+  const viewport = previewPage.getViewport({scale});
+  const rc = document.createElement('canvas');
+  rc.id='review-canvas';
+  rc.width = viewport.width; rc.height = viewport.height;
+  await previewPage.render({canvasContext: rc.getContext('2d'), viewport}).promise;
+
+  document.getElementById('review-loading').style.display='none';
+  const body = document.getElementById('review-body');
+  const badge = document.createElement('div');
+  badge.className='review-badge';
+  badge.innerHTML = '✓ Ready to send';
+  body.appendChild(badge);
+  body.appendChild(rc);
+
+  const actions = document.createElement('div');
+  actions.className='review-actions';
+  actions.innerHTML = `
+    <button class="btn-share" id="btn-share">Share</button>
+    <button class="btn-download" id="btn-download">Save to device</button>
+    <button class="btn-restart" id="btn-restart">Start a new document</button>
+  `;
+  body.appendChild(actions);
+
+  document.getElementById('btn-download').addEventListener('click', ()=>{
+    const a = document.createElement('a');
+    a.href = url; a.download = window._lastExportName;
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+  document.getElementById('btn-share').addEventListener('click', async ()=>{
+    try{
+      const file = new File([window._lastExportBlob], window._lastExportName, {type:'application/pdf'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({files:[file], title: window._lastExportName});
+      } else {
+        alert('Sharing isn\'t supported in this browser — use Save to device instead.');
+      }
+    } catch(err){ /* user cancelled share */ }
+  });
+  document.getElementById('btn-restart').addEventListener('click', ()=>{
+    currentFile=null; markers=[]; docNameEl.textContent='Fill & Sign'; docNameEl.classList.add('placeholder');
+    pageIndicatorEl.textContent=''; showScreen('home');
+  });
+}
+
+function dataUrlToBytes(dataUrl){
+  const base64 = dataUrl.split(',')[1];
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+</script>
+</body>
+</html>
