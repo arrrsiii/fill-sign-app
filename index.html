@@ -72,16 +72,17 @@
 
   /* ---------- editor ---------- */
   #screen-editor{background:var(--paper-dim);}
-  .pdf-scroll{flex:1;overflow:auto;display:flex;justify-content:center;padding:16px;}
-  #pdf-wrapper{position:relative;box-shadow:0 2px 14px rgba(20,33,61,0.15);background:#fff;height:fit-content;}
-  #pdf-canvas{display:block;touch-action:pan-y;}
-  #marker-layer{position:absolute;inset:0;}
+  .pdf-scroll{flex:1;overflow:auto;padding:16px;text-align:center;}
+  #pdf-wrapper{position:relative;box-shadow:0 2px 14px rgba(20,33,61,0.15);background:#fff;display:inline-block;text-align:left;}
+  #pdf-canvas{display:block;touch-action:pan-x pan-y;}
+  #marker-layer{position:absolute;inset:0;pointer-events:none;}
   .marker{
     position:absolute;
     display:flex;align-items:center;
     cursor:grab;
     user-select:none;
     touch-action:none;
+    pointer-events:auto;
   }
   .marker.text-marker{
     background:var(--signed-dim);
@@ -102,18 +103,24 @@
     position:absolute;top:-9px;right:-9px;width:18px;height:18px;border-radius:50%;
     background:var(--stamp);color:#fff;font-size:12px;line-height:18px;text-align:center;
     cursor:pointer;font-weight:700;
+    pointer-events:auto;
   }
   .placing-hint{
     position:absolute;top:10px;left:50%;transform:translateX(-50%);
     background:var(--ink);color:#fff;padding:8px 14px;border-radius:20px;font-size:13px;
     z-index:5;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,0.2);
+    pointer-events:none;
   }
   .page-nav{
-    flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:16px;
-    padding:8px;background:var(--paper);border-top:1px solid var(--line);font-size:14px;
+    flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:8px 12px;background:var(--paper);border-top:1px solid var(--line);font-size:13px;
   }
-  .page-nav button{background:none;border:1px solid var(--line);border-radius:6px;padding:6px 12px;cursor:pointer;}
+  .page-nav .nav-group{display:flex;align-items:center;gap:8px;}
+  .page-nav button{background:none;border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;}
   .page-nav button:disabled{opacity:0.35;}
+  .zoom-controls{display:flex;align-items:center;gap:6px;}
+  .zoom-controls button{width:30px;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--paper-dim);font-size:16px;line-height:1;cursor:pointer;}
+  #zoom-label{font-size:12px;color:var(--ink-soft);min-width:38px;text-align:center;}
   .toolbar-bottom{
     flex:0 0 auto;display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
     background:var(--paper);border-top:1px solid var(--line);
@@ -131,6 +138,7 @@
   #text-input-box{
     position:absolute;z-index:20;background:#fff;border:2px solid var(--signed);
     border-radius:6px;display:flex;align-items:center;box-shadow:0 4px 14px rgba(0,0,0,0.25);
+    pointer-events:auto;
   }
   #text-input-box input{
     border:none;outline:none;font-size:16px;padding:8px;min-width:120px;font-family:inherit;
@@ -200,7 +208,7 @@
 
     <!-- EDITOR -->
     <section id="screen-editor" class="screen">
-      <div class="pdf-scroll">
+      <div class="pdf-scroll" id="pdf-scroll">
         <div id="pdf-wrapper">
           <canvas id="pdf-canvas"></canvas>
           <div id="marker-layer"></div>
@@ -208,9 +216,16 @@
         </div>
       </div>
       <div class="page-nav">
-        <button id="prev-page">‹ Prev</button>
-        <span id="page-label">Page 1</span>
-        <button id="next-page">Next ›</button>
+        <div class="nav-group">
+          <button id="prev-page">‹ Prev</button>
+          <span id="page-label">Page 1</span>
+          <button id="next-page">Next ›</button>
+        </div>
+        <div class="zoom-controls">
+          <button id="zoom-out">－</button>
+          <span id="zoom-label">100%</span>
+          <button id="zoom-in">＋</button>
+        </div>
       </div>
       <div class="toolbar-bottom">
         <button class="tool-btn" id="tool-text">
@@ -260,15 +275,17 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs
 
 // ---------- state ----------
 let currentFile = null;
-let pdfjsDoc = null;       // pdf.js document, for rendering
+let pdfjsDoc = null;
 let numPages = 1;
 let currentPage = 1;
-let markers = [];          // {id, page, xRatio, yRatio, wRatio, hRatio, type:'text'|'sig', text, dataUrl, fontRatio}
+let markers = [];
 let pendingSigDataUrl = null;
-let placingMode = null;    // 'text' | 'sig' | null
+let placingMode = null;    // 'text' | 'sig-place' | null
 let markerIdCounter = 1;
 let sigPad = null;
 let recentDocs = [];
+let zoomLevel = 1;         // 0.5 - 3
+let pageW = 0, pageH = 0;  // CURRENT page render size in CSS px (logical, not device pixels)
 
 // ---------- elements ----------
 const screens = {
@@ -285,10 +302,14 @@ const canvas = document.getElementById('pdf-canvas');
 const ctx = canvas.getContext('2d');
 const markerLayer = document.getElementById('marker-layer');
 const wrapper = document.getElementById('pdf-wrapper');
+const pdfScroll = document.getElementById('pdf-scroll');
 const placingHint = document.getElementById('placing-hint');
 const pageLabel = document.getElementById('page-label');
 const prevPageBtn = document.getElementById('prev-page');
 const nextPageBtn = document.getElementById('next-page');
+const zoomInBtn = document.getElementById('zoom-in');
+const zoomOutBtn = document.getElementById('zoom-out');
+const zoomLabel = document.getElementById('zoom-label');
 const toolText = document.getElementById('tool-text');
 const toolSig = document.getElementById('tool-sig');
 const toolReview = document.getElementById('tool-review');
@@ -322,6 +343,8 @@ async function openFile(f){
   docNameEl.classList.remove('placeholder');
   markers = [];
   currentPage = 1;
+  zoomLevel = 1;
+  updateZoomLabel();
 
   recentDocs.unshift(f.name);
   recentDocs = recentDocs.slice(0,5);
@@ -348,19 +371,31 @@ function escapeHtml(s){
 async function renderPage(pageNum){
   currentPage = pageNum;
   const page = await pdfjsDoc.getPage(pageNum);
-  const containerWidth = Math.min(wrapper.parentElement.clientWidth - 32, 700);
+  const dpr = window.devicePixelRatio || 1;
+
+  const baseWidth = Math.min(pdfScroll.clientWidth - 32, 700);
+  const displayWidth = baseWidth * zoomLevel;
+
   const unscaled = page.getViewport({scale:1});
-  const scale = containerWidth / unscaled.width;
-  const viewport = page.getViewport({scale});
+  const scale = displayWidth / unscaled.width;          // CSS-pixel scale (what the user sees)
+  const cssViewport = page.getViewport({scale});         // logical size
+  const renderViewport = page.getViewport({scale: scale*dpr}); // actual backing-store resolution
 
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
-  wrapper.style.width = viewport.width + 'px';
-  wrapper.style.height = viewport.height + 'px';
-  markerLayer.style.width = viewport.width + 'px';
-  markerLayer.style.height = viewport.height + 'px';
+  pageW = cssViewport.width;
+  pageH = cssViewport.height;
 
-  await page.render({canvasContext: ctx, viewport}).promise;
+  // backing store = high-res, style = logical CSS size -> crisp on retina/high-dpi screens
+  canvas.width = renderViewport.width;
+  canvas.height = renderViewport.height;
+  canvas.style.width = pageW + 'px';
+  canvas.style.height = pageH + 'px';
+
+  wrapper.style.width = pageW + 'px';
+  wrapper.style.height = pageH + 'px';
+  markerLayer.style.width = pageW + 'px';
+  markerLayer.style.height = pageH + 'px';
+
+  await page.render({canvasContext: ctx, viewport: renderViewport}).promise;
 
   pageLabel.textContent = `Page ${pageNum} of ${numPages}`;
   pageIndicatorEl.textContent = `${pageNum}/${numPages}`;
@@ -372,6 +407,18 @@ async function renderPage(pageNum){
 
 prevPageBtn.addEventListener('click', ()=>{ if(currentPage>1) renderPage(currentPage-1); });
 nextPageBtn.addEventListener('click', ()=>{ if(currentPage<numPages) renderPage(currentPage+1); });
+
+function updateZoomLabel(){ zoomLabel.textContent = Math.round(zoomLevel*100)+'%'; }
+zoomInBtn.addEventListener('click', ()=>{
+  zoomLevel = Math.min(3, +(zoomLevel+0.25).toFixed(2));
+  updateZoomLabel();
+  if(pdfjsDoc) renderPage(currentPage);
+});
+zoomOutBtn.addEventListener('click', ()=>{
+  zoomLevel = Math.max(0.5, +(zoomLevel-0.25).toFixed(2));
+  updateZoomLabel();
+  if(pdfjsDoc) renderPage(currentPage);
+});
 
 // ---------- placing text ----------
 toolText.addEventListener('click', ()=>{
@@ -387,7 +434,7 @@ toolSig.addEventListener('click', ()=>{
 });
 
 canvas.addEventListener('click', (e)=>{
-  if(placingMode!==('text') && !(placingMode==='sig-place')) return;
+  if(placingMode!=='text' && placingMode!=='sig-place') return;
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
@@ -411,7 +458,10 @@ function openTextInput(x,y){
   const input = box.querySelector('input');
   input.focus();
 
+  let committed = false;
   function commit(){
+    if(committed) return;
+    committed = true;
     const val = input.value.trim();
     if(val){
       const fontPx = 16;
@@ -420,9 +470,9 @@ function openTextInput(x,y){
         page: currentPage,
         type:'text',
         text: val,
-        xRatio: x/canvas.width,
-        yRatio: y/canvas.height,
-        fontRatio: fontPx/canvas.height
+        xRatio: x/pageW,
+        yRatio: y/pageH,
+        fontRatio: fontPx/pageH
       });
       redrawMarkers();
     }
@@ -459,7 +509,7 @@ document.getElementById('sig-use').addEventListener('click', ()=>{
 });
 
 function placeSignatureMarker(x,y){
-  const w = Math.min(canvas.width*0.35, 160);
+  const w = Math.min(pageW*0.35, 160);
   const h = w*0.42;
   const px = Math.max(0, x - w/2);
   const py = Math.max(0, y - h/2);
@@ -468,10 +518,10 @@ function placeSignatureMarker(x,y){
     page: currentPage,
     type:'sig',
     dataUrl: pendingSigDataUrl,
-    xRatio: px/canvas.width,
-    yRatio: py/canvas.height,
-    wRatio: w/canvas.width,
-    hRatio: h/canvas.height
+    xRatio: px/pageW,
+    yRatio: py/pageH,
+    wRatio: w/pageW,
+    hRatio: h/pageH
   });
   redrawMarkers();
 }
@@ -483,15 +533,15 @@ function redrawMarkers(){
     const el = document.createElement('div');
     el.className = 'marker ' + (m.type==='text' ? 'text-marker' : 'sig-marker');
     if(m.type==='text'){
-      el.style.left = (m.xRatio*canvas.width)+'px';
-      el.style.top = (m.yRatio*canvas.height)+'px';
-      el.style.fontSize = (m.fontRatio*canvas.height)+'px';
+      el.style.left = (m.xRatio*pageW)+'px';
+      el.style.top = (m.yRatio*pageH)+'px';
+      el.style.fontSize = (m.fontRatio*pageH)+'px';
       el.textContent = m.text;
     } else {
-      el.style.left = (m.xRatio*canvas.width)+'px';
-      el.style.top = (m.yRatio*canvas.height)+'px';
-      el.style.width = (m.wRatio*canvas.width)+'px';
-      el.style.height = (m.hRatio*canvas.height)+'px';
+      el.style.left = (m.xRatio*pageW)+'px';
+      el.style.top = (m.yRatio*pageH)+'px';
+      el.style.width = (m.wRatio*pageW)+'px';
+      el.style.height = (m.hRatio*pageH)+'px';
       const img = document.createElement('img');
       img.src = m.dataUrl;
       el.appendChild(img);
@@ -516,12 +566,12 @@ function makeDraggable(el, m){
   el.addEventListener('pointermove',(e)=>{
     if(!dragging) return;
     const dx = e.clientX-startX, dy=e.clientY-startY;
-    const newLeft = Math.min(Math.max(0,origLeft+dx), canvas.width-20);
-    const newTop = Math.min(Math.max(0,origTop+dy), canvas.height-20);
+    const newLeft = Math.min(Math.max(0,origLeft+dx), pageW-20);
+    const newTop = Math.min(Math.max(0,origTop+dy), pageH-20);
     el.style.left = newLeft+'px';
     el.style.top = newTop+'px';
-    m.xRatio = newLeft/canvas.width;
-    m.yRatio = newTop/canvas.height;
+    m.xRatio = newLeft/pageW;
+    m.yRatio = newTop/pageH;
   });
   el.addEventListener('pointerup',()=>{ dragging=false; });
 }
@@ -569,17 +619,20 @@ async function doExport(){
   window._lastExportBlob = blob;
   window._lastExportName = (currentFile.name||'document').replace(/\.pdf$/i,'') + '-signed.pdf';
 
-  // render preview of first affected page (or page 1)
   const previewDoc = await pdfjsLib.getDocument({data: outBytes.slice()}).promise;
   const previewPageNum = markers.length ? markers[0].page : 1;
   const previewPage = await previewDoc.getPage(previewPageNum);
+  const dpr = window.devicePixelRatio || 1;
   const vp1 = previewPage.getViewport({scale:1});
-  const scale = Math.min((window.innerWidth-40)/vp1.width, 1.2);
-  const viewport = previewPage.getViewport({scale});
+  const cssScale = Math.min((window.innerWidth-40)/vp1.width, 1.2);
+  const cssViewport = previewPage.getViewport({scale:cssScale});
+  const renderViewport = previewPage.getViewport({scale:cssScale*dpr});
   const rc = document.createElement('canvas');
   rc.id='review-canvas';
-  rc.width = viewport.width; rc.height = viewport.height;
-  await previewPage.render({canvasContext: rc.getContext('2d'), viewport}).promise;
+  rc.width = renderViewport.width; rc.height = renderViewport.height;
+  rc.style.width = cssViewport.width+'px';
+  rc.style.height = cssViewport.height+'px';
+  await previewPage.render({canvasContext: rc.getContext('2d'), viewport: renderViewport}).promise;
 
   document.getElementById('review-loading').style.display='none';
   const body = document.getElementById('review-body');
