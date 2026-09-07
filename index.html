@@ -11,8 +11,10 @@
     --ink:#14213d;
     --ink-soft:#5b6472;
     --line:#dfe1e6;
-    --stamp:#b3261e;
-    --stamp-dim:#f6e6e5;
+    --accent:#2f80ed;
+    --accent-dim:#e9f3fd;
+    --danger:#c0392b;
+    --danger-dim:#fbeceb;
     --signed:#1f7a5c;
     --signed-dim:#e6f2ee;
     --radius:10px;
@@ -28,6 +30,7 @@
   }
   h1,h2,h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-weight:600;margin:0;}
   button{font-family:inherit;}
+  svg{display:block;}
   #app{height:100%;display:flex;flex-direction:column;}
 
   /* ---------- header ---------- */
@@ -41,10 +44,10 @@
     justify-content:space-between;
     min-height:52px;
   }
-  header .doc-name{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;}
+  header .doc-name{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%;}
   header .doc-name.placeholder{color:var(--ink-soft);font-weight:400;}
   header .page-indicator{font-size:13px;color:var(--ink-soft);}
-  header .back-btn{background:none;border:none;color:var(--stamp);font-size:15px;padding:4px 0;cursor:pointer;}
+  header .back-btn{background:none;border:none;color:var(--accent);font-size:15px;padding:4px 0;cursor:pointer;}
 
   main{flex:1 1 auto;position:relative;overflow:hidden;}
   .screen{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden;}
@@ -57,7 +60,7 @@
   .home-hero p{margin:8px 0 0;color:var(--ink-soft);font-size:14px;line-height:1.5;}
   .upload-btn{
     display:flex;align-items:center;justify-content:center;gap:10px;
-    background:var(--ink);color:#fff;border:none;border-radius:var(--radius);
+    background:var(--accent);color:#fff;border:none;border-radius:var(--radius);
     padding:18px;font-size:16px;font-weight:600;cursor:pointer;width:100%;
   }
   .upload-btn:active{opacity:0.85;}
@@ -85,23 +88,48 @@
     pointer-events:auto;
   }
   .marker.text-marker{
-    background:var(--signed-dim);
-    border:1.5px solid var(--signed);
+    background:var(--accent-dim);
+    border:1.5px solid var(--accent);
     border-radius:6px;
     padding:3px 8px;
     color:var(--ink);
     font-size:14px;
     white-space:nowrap;
   }
+  .marker.text-marker-empty{
+    border:1.5px dashed var(--accent);
+    background:rgba(47,128,237,0.06);
+    border-radius:5px;
+    padding:3px 8px;
+    color:var(--accent);
+    font-style:italic;
+    white-space:nowrap;
+  }
+  .marker.checkbox-marker{
+    border:1.5px solid var(--accent);
+    border-radius:4px;
+    background:#fff;
+    justify-content:center;
+    color:var(--accent);
+    font-weight:700;
+  }
   .marker.sig-marker{
-    border:1.5px dashed var(--stamp);
+    border:1.5px dashed var(--accent);
     border-radius:6px;
     background:rgba(255,255,255,0.5);
+  }
+  .marker.sig-marker-empty{
+    justify-content:center;
+    background:rgba(47,128,237,0.06);
+    color:var(--accent);
+    font-size:12px;
+    font-weight:600;
+    text-align:center;
   }
   .marker.sig-marker img{width:100%;height:100%;object-fit:contain;pointer-events:none;}
   .marker .del{
     position:absolute;top:-9px;right:-9px;width:18px;height:18px;border-radius:50%;
-    background:var(--stamp);color:#fff;font-size:12px;line-height:18px;text-align:center;
+    background:var(--danger);color:#fff;font-size:12px;line-height:18px;text-align:center;
     cursor:pointer;font-weight:700;
     pointer-events:auto;
   }
@@ -121,49 +149,62 @@
   .zoom-controls{display:flex;align-items:center;gap:6px;}
   .zoom-controls button{width:30px;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--paper-dim);font-size:16px;line-height:1;cursor:pointer;}
   #zoom-label{font-size:12px;color:var(--ink-soft);min-width:38px;text-align:center;}
-  .toolbar-bottom{
-    flex:0 0 auto;display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
-    background:var(--paper);border-top:1px solid var(--line);
+
+  /* ---------- tool row ---------- */
+  .tool-row{
+    flex:0 0 auto;display:flex;gap:16px;overflow-x:auto;padding:10px 16px;
+    background:var(--paper);border-top:1px solid var(--line);-webkit-overflow-scrolling:touch;
   }
-  .tool-btn{
-    flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
-    border:none;background:var(--paper-dim);border-radius:var(--radius);padding:10px 4px;
-    font-size:12px;font-weight:600;color:var(--ink);cursor:pointer;
+  .tool-icon-btn{
+    display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;
+    flex:0 0 auto;cursor:pointer;min-width:54px;
   }
-  .tool-btn.active{background:var(--signed-dim);color:var(--signed);}
-  .tool-btn .icon{font-size:18px;}
-  .tool-btn.primary{background:var(--ink);color:#fff;}
+  .tool-circle{
+    width:44px;height:44px;border-radius:50%;background:var(--accent-dim);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;
+  }
+  .tool-icon-btn.active .tool-circle{background:var(--accent);color:#fff;}
+  .tool-label{font-size:10.5px;color:var(--ink-soft);white-space:nowrap;}
+  .review-btn{
+    flex:0 0 auto;display:block;width:calc(100% - 24px);margin:0 12px calc(10px + env(safe-area-inset-bottom));
+    background:var(--accent);color:#fff;border:none;border-radius:var(--radius);
+    padding:14px;font-weight:700;font-size:15px;cursor:pointer;
+  }
 
   /* inline text input for placing text */
   #text-input-box{
-    position:absolute;z-index:20;background:#fff;border:2px solid var(--signed);
+    position:absolute;z-index:20;background:#fff;border:2px solid var(--accent);
     border-radius:8px;display:flex;flex-direction:column;box-shadow:0 4px 14px rgba(0,0,0,0.25);
-    pointer-events:auto;overflow:hidden;min-width:230px;
+    pointer-events:auto;overflow:hidden;min-width:250px;
   }
   #text-input-box .format-row{
     display:flex;align-items:center;gap:4px;padding:6px 8px;background:var(--paper-dim);
-    border-bottom:1px solid var(--line);
+    border-bottom:1px solid var(--line);flex-wrap:wrap;
   }
   #text-input-box .fmt-btn{
     border:1px solid var(--line);background:#fff;border-radius:5px;width:28px;height:28px;
     font-size:13px;cursor:pointer;color:var(--ink);
   }
-  #text-input-box .fmt-btn.on{background:var(--signed);color:#fff;border-color:var(--signed);}
+  #text-input-box .fmt-btn.on{background:var(--accent);color:#fff;border-color:var(--accent);}
   #text-input-box .size-btn{
     border:1px solid var(--line);background:#fff;border-radius:5px;width:24px;height:24px;
     font-size:14px;cursor:pointer;color:var(--ink);line-height:1;
   }
   #text-input-box .size-label{font-size:12px;color:var(--ink-soft);min-width:22px;text-align:center;}
+  #text-input-box .fmt-select{
+    border:1px solid var(--line);border-radius:5px;background:#fff;font-size:11px;
+    padding:4px 2px;color:var(--ink);max-width:64px;
+  }
   #text-input-box .input-row{display:flex;align-items:center;}
   #text-input-box input{
     border:none;outline:none;font-size:16px;padding:10px;min-width:140px;font-family:inherit;flex:1;
   }
   #text-input-box .add-btn{
-    border:none;background:var(--signed);color:#fff;padding:0 14px;align-self:stretch;
+    border:none;background:var(--accent);color:#fff;padding:0 14px;align-self:stretch;
     font-weight:700;cursor:pointer;font-size:14px;
   }
   #text-input-box .del-btn{
-    border:none;background:none;color:var(--stamp);padding:0 10px;align-self:stretch;
+    border:none;background:none;color:var(--danger);padding:0 10px;align-self:stretch;
     font-weight:700;cursor:pointer;font-size:13px;
   }
 
@@ -177,7 +218,7 @@
   .modal-actions{display:flex;gap:10px;margin-top:14px;}
   .modal-actions button{flex:1;padding:13px;border-radius:var(--radius);border:none;font-weight:600;font-size:14px;cursor:pointer;}
   .btn-clear{background:var(--paper-dim);color:var(--ink);}
-  .btn-use{background:var(--stamp);color:#fff;}
+  .btn-use{background:var(--accent);color:#fff;}
   .btn-cancel{background:none;color:var(--ink-soft);text-align:center;margin-top:10px;width:100%;border:none;font-size:13px;padding:6px;cursor:pointer;}
 
   /* ---------- review ---------- */
@@ -189,12 +230,12 @@
   #review-canvas{max-width:100%;box-shadow:0 2px 14px rgba(20,33,61,0.15);border-radius:2px;}
   .review-actions{width:100%;max-width:420px;display:flex;flex-direction:column;gap:10px;margin-top:22px;}
   .review-actions button{padding:16px;border-radius:var(--radius);border:none;font-weight:600;font-size:15px;cursor:pointer;}
-  .btn-share{background:var(--ink);color:#fff;}
+  .btn-share{background:var(--accent);color:#fff;}
   .btn-download{background:var(--paper);color:var(--ink);border:1.5px solid var(--line) !important;}
-  .btn-restart{background:none;color:var(--stamp);}
+  .btn-restart{background:none;color:var(--danger);}
 
   .spinner-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:60px 20px;color:var(--ink-soft);font-size:14px;}
-  .spinner{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--stamp);border-radius:50%;animation:spin 0.8s linear infinite;}
+  .spinner{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
@@ -246,17 +287,44 @@
           <button id="zoom-in">＋</button>
         </div>
       </div>
-      <div class="toolbar-bottom">
-        <button class="tool-btn" id="tool-text">
-          <span class="icon">＋Ａ</span> Add text
+
+      <div class="tool-row" id="tool-row">
+        <button class="tool-icon-btn" id="tool-sig" data-tool="sig">
+          <span class="tool-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+          </span>
+          <span class="tool-label">Signature</span>
         </button>
-        <button class="tool-btn" id="tool-sig">
-          <span class="icon">✎</span> Sign
+        <button class="tool-icon-btn" id="tool-initials" data-tool="initials">
+          <span class="tool-circle">Aa</span>
+          <span class="tool-label">Initials</span>
         </button>
-        <button class="tool-btn primary" id="tool-review">
-          <span class="icon">✓</span> Review &amp; export
+        <button class="tool-icon-btn" id="tool-date" data-tool="date">
+          <span class="tool-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </span>
+          <span class="tool-label">Date</span>
+        </button>
+        <button class="tool-icon-btn" id="tool-text" data-tool="text">
+          <span class="tool-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+          </span>
+          <span class="tool-label">Text</span>
+        </button>
+        <button class="tool-icon-btn" id="tool-checkbox" data-tool="checkbox">
+          <span class="tool-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </span>
+          <span class="tool-label">Checkbox</span>
+        </button>
+        <button class="tool-icon-btn" id="tool-detect" data-tool="detect">
+          <span class="tool-circle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </span>
+          <span class="tool-label">Detect blanks</span>
         </button>
       </div>
+      <button class="review-btn" id="tool-review">Review &amp; export</button>
     </section>
 
     <!-- REVIEW -->
@@ -274,12 +342,12 @@
 <!-- SIGNATURE MODAL -->
 <div class="modal hidden" id="sig-modal">
   <div class="modal-card">
-    <h3>Draw your signature</h3>
+    <h3 id="sig-modal-title">Draw your signature</h3>
     <p class="hint">Use your finger. You'll place it on the page next.</p>
     <canvas id="sig-canvas"></canvas>
     <div class="modal-actions">
       <button class="btn-clear" id="sig-clear">Clear</button>
-      <button class="btn-use" id="sig-use">Use this signature</button>
+      <button class="btn-use" id="sig-use">Use this</button>
     </div>
     <button class="btn-cancel" id="sig-cancel">Cancel</button>
   </div>
@@ -292,6 +360,18 @@
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
+// ---------- font helpers ----------
+const FONT_CSS = {
+  helvetica:'Arial, Helvetica, sans-serif',
+  times:'Georgia, "Times New Roman", serif',
+  courier:'"Courier New", monospace'
+};
+const FONT_SPECS = {
+  helvetica:{reg:'Helvetica',bold:'HelveticaBold',italic:'HelveticaOblique',boldItalic:'HelveticaBoldOblique'},
+  times:{reg:'TimesRoman',bold:'TimesRomanBold',italic:'TimesRomanItalic',boldItalic:'TimesRomanBoldItalic'},
+  courier:{reg:'Courier',bold:'CourierBold',italic:'CourierOblique',boldItalic:'CourierBoldOblique'}
+};
+
 // ---------- state ----------
 let currentFile = null;
 let pdfjsDoc = null;
@@ -299,12 +379,14 @@ let numPages = 1;
 let currentPage = 1;
 let markers = [];
 let pendingSigDataUrl = null;
-let placingMode = null;    // 'text' | 'sig-place' | null
+let pendingIsInitials = false;
+let sigTargetMarker = null;
+let placingMode = null;    // 'text' | 'date' | 'checkbox' | 'sig-place' | null
 let markerIdCounter = 1;
 let sigPad = null;
 let recentDocs = [];
-let zoomLevel = 1;         // 0.5 - 3
-let pageW = 0, pageH = 0;  // CURRENT page render size in CSS px (logical, not device pixels)
+let zoomLevel = 1;
+let pageW = 0, pageH = 0;
 
 // ---------- elements ----------
 const screens = {
@@ -330,9 +412,9 @@ const zoomInBtn = document.getElementById('zoom-in');
 const zoomOutBtn = document.getElementById('zoom-out');
 const zoomLabel = document.getElementById('zoom-label');
 const toolText = document.getElementById('tool-text');
-const toolSig = document.getElementById('tool-sig');
 const toolReview = document.getElementById('tool-review');
 const sigModal = document.getElementById('sig-modal');
+const sigModalTitle = document.getElementById('sig-modal-title');
 const sigCanvas = document.getElementById('sig-canvas');
 const recentListEl = document.getElementById('recent-list');
 const recentEmptyEl = document.getElementById('recent-empty');
@@ -374,6 +456,9 @@ async function openFile(f){
   numPages = pdfjsDoc.numPages;
   showScreen('editor');
   await renderPage(1);
+
+  // best-effort: auto-detect real fillable form fields, if this PDF has any
+  detectFormFields();
 }
 
 function renderRecents(){
@@ -396,14 +481,13 @@ async function renderPage(pageNum){
   const displayWidth = baseWidth * zoomLevel;
 
   const unscaled = page.getViewport({scale:1});
-  const scale = displayWidth / unscaled.width;          // CSS-pixel scale (what the user sees)
-  const cssViewport = page.getViewport({scale});         // logical size
-  const renderViewport = page.getViewport({scale: scale*dpr}); // actual backing-store resolution
+  const scale = displayWidth / unscaled.width;
+  const cssViewport = page.getViewport({scale});
+  const renderViewport = page.getViewport({scale: scale*dpr});
 
   pageW = cssViewport.width;
   pageH = cssViewport.height;
 
-  // backing store = high-res, style = logical CSS size -> crisp on retina/high-dpi screens
   canvas.width = renderViewport.width;
   canvas.height = renderViewport.height;
   canvas.style.width = pageW + 'px';
@@ -439,39 +523,94 @@ zoomOutBtn.addEventListener('click', ()=>{
   if(pdfjsDoc) renderPage(currentPage);
 });
 
-// ---------- placing text ----------
-toolText.addEventListener('click', ()=>{
-  placingMode = placingMode==='text' ? null : 'text';
-  toolText.classList.toggle('active', placingMode==='text');
-  toolSig.classList.remove('active');
-  placingHint.style.display = placingMode==='text' ? 'block' : 'none';
-  placingHint.textContent = 'Tap on the page to add a text field';
-});
+// ---------- tool row ----------
+function clearActiveTools(){
+  document.querySelectorAll('.tool-icon-btn').forEach(b=>b.classList.remove('active'));
+  placingHint.style.display = 'none';
+}
+function setActiveTool(tool, btn){
+  if(placingMode === tool){
+    placingMode = null;
+    clearActiveTools();
+    return;
+  }
+  placingMode = tool;
+  clearActiveTools();
+  btn.classList.add('active');
+  const hints = {
+    text: 'Tap on the page to add a text field',
+    date: "Tap on the page to insert today's date",
+    checkbox: 'Tap on the page to place a checkbox'
+  };
+  placingHint.style.display = 'block';
+  placingHint.textContent = hints[tool] || '';
+}
 
-toolSig.addEventListener('click', ()=>{
-  openSigModal();
-});
+document.getElementById('tool-sig').addEventListener('click', ()=> openSigModal(false));
+document.getElementById('tool-initials').addEventListener('click', ()=> openSigModal(true));
+document.getElementById('tool-text').addEventListener('click', (e)=> setActiveTool('text', e.currentTarget));
+document.getElementById('tool-date').addEventListener('click', (e)=> setActiveTool('date', e.currentTarget));
+document.getElementById('tool-checkbox').addEventListener('click', (e)=> setActiveTool('checkbox', e.currentTarget));
+document.getElementById('tool-detect').addEventListener('click', ()=> runDetectBlanks());
 
 canvas.addEventListener('click', (e)=>{
-  if(placingMode!=='text' && placingMode!=='sig-place') return;
+  if(!placingMode) return;
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
 
   if(placingMode==='text'){
     openTextInput(x,y);
+  } else if(placingMode==='date'){
+    placeDateMarker(x,y);
+    placingMode = null; clearActiveTools();
+  } else if(placingMode==='checkbox'){
+    placeCheckboxMarker(x,y);
+    placingMode = null; clearActiveTools();
   } else if(placingMode==='sig-place'){
     placeSignatureMarker(x,y);
-    placingMode = null;
-    placingHint.style.display='none';
+    placingMode = null; clearActiveTools();
   }
 });
 
+function placeDateMarker(x,y){
+  const fontPx = 14;
+  const todayStr = new Date().toLocaleDateString();
+  markers.push({
+    id: markerIdCounter++,
+    page: currentPage,
+    type:'text',
+    text: todayStr,
+    bold:false, italic:false, fontFamily:'helvetica',
+    xRatio: x/pageW,
+    yRatio: y/pageH,
+    fontRatio: fontPx/pageH
+  });
+  redrawMarkers();
+}
+
+function placeCheckboxMarker(x,y){
+  const size = 22;
+  markers.push({
+    id: markerIdCounter++,
+    page: currentPage,
+    type:'checkbox',
+    checked:false,
+    xRatio: (x-size/2)/pageW,
+    yRatio: (y-size/2)/pageH,
+    wRatio: size/pageW,
+    hRatio: size/pageH
+  });
+  redrawMarkers();
+}
+
+// ---------- text input (add / edit) ----------
 function openTextInput(x, y, existingMarker){
   const isEdit = !!existingMarker;
   const state = {
     bold: isEdit ? !!existingMarker.bold : false,
     italic: isEdit ? !!existingMarker.italic : false,
+    fontFamily: isEdit ? (existingMarker.fontFamily || 'helvetica') : 'helvetica',
     fontPx: isEdit ? Math.round(existingMarker.fontRatio*pageH) : 16
   };
 
@@ -483,7 +622,11 @@ function openTextInput(x, y, existingMarker){
     <div class="format-row">
       <button type="button" class="fmt-btn" id="fmt-bold" style="font-weight:700;">B</button>
       <button type="button" class="fmt-btn" id="fmt-italic" style="font-style:italic;">I</button>
-      <span style="width:8px;"></span>
+      <select class="fmt-select" id="font-family">
+        <option value="helvetica">Sans</option>
+        <option value="times">Serif</option>
+        <option value="courier">Mono</option>
+      </select>
       <button type="button" class="size-btn" id="size-down">－</button>
       <span class="size-label" id="size-label">${state.fontPx}</span>
       <button type="button" class="size-btn" id="size-up">＋</button>
@@ -499,14 +642,17 @@ function openTextInput(x, y, existingMarker){
   const input = box.querySelector('input');
   const boldBtn = box.querySelector('#fmt-bold');
   const italicBtn = box.querySelector('#fmt-italic');
+  const familySelect = box.querySelector('#font-family');
   const sizeLabel = box.querySelector('#size-label');
+  familySelect.value = state.fontFamily;
 
-  if(isEdit) input.value = existingMarker.text;
+  if(isEdit && existingMarker.text) input.value = existingMarker.text;
 
   function applyPreview(){
     input.style.fontWeight = state.bold ? '700' : '400';
     input.style.fontStyle = state.italic ? 'italic' : 'normal';
     input.style.fontSize = Math.max(12, state.fontPx) + 'px';
+    input.style.fontFamily = FONT_CSS[state.fontFamily] || FONT_CSS.helvetica;
     boldBtn.classList.toggle('on', state.bold);
     italicBtn.classList.toggle('on', state.italic);
     sizeLabel.textContent = state.fontPx;
@@ -517,10 +663,10 @@ function openTextInput(x, y, existingMarker){
 
   boldBtn.addEventListener('click', ()=>{ state.bold = !state.bold; applyPreview(); });
   italicBtn.addEventListener('click', ()=>{ state.italic = !state.italic; applyPreview(); });
+  familySelect.addEventListener('change', ()=>{ state.fontFamily = familySelect.value; applyPreview(); });
   box.querySelector('#size-down').addEventListener('click', ()=>{ state.fontPx = Math.max(10, state.fontPx-2); applyPreview(); });
   box.querySelector('#size-up').addEventListener('click', ()=>{ state.fontPx = Math.min(48, state.fontPx+2); applyPreview(); });
 
-  // keep the box fully on-screen
   requestAnimationFrame(()=>{
     const boxW = box.offsetWidth, boxH = box.offsetHeight;
     let left = parseFloat(box.style.left), top = parseFloat(box.style.top);
@@ -540,6 +686,7 @@ function openTextInput(x, y, existingMarker){
         existingMarker.text = val;
         existingMarker.bold = state.bold;
         existingMarker.italic = state.italic;
+        existingMarker.fontFamily = state.fontFamily;
         existingMarker.fontRatio = state.fontPx/pageH;
       } else {
         markers.push({
@@ -549,20 +696,22 @@ function openTextInput(x, y, existingMarker){
           text: val,
           bold: state.bold,
           italic: state.italic,
+          fontFamily: state.fontFamily,
           xRatio: x/pageW,
           yRatio: y/pageH,
           fontRatio: state.fontPx/pageH
         });
       }
       redrawMarkers();
-    } else if(isEdit){
+    } else if(isEdit && !existingMarker.detected){
       markers = markers.filter(mm=>mm.id!==existingMarker.id);
+      redrawMarkers();
+    } else if(isEdit){
       redrawMarkers();
     }
     box.remove();
     placingMode = null;
-    toolText.classList.remove('active');
-    placingHint.style.display='none';
+    clearActiveTools();
   }
   function deleteAndClose(){
     done = true;
@@ -583,8 +732,10 @@ function openTextInput(x, y, existingMarker){
   setTimeout(()=> document.addEventListener('pointerdown', outsideClick, true), 50);
 }
 
-// ---------- signature ----------
-function openSigModal(){
+// ---------- signature / initials ----------
+function openSigModal(isInitials){
+  pendingIsInitials = !!isInitials;
+  sigModalTitle.textContent = isInitials ? 'Draw your initials' : 'Draw your signature';
   sigModal.classList.remove('hidden');
   requestAnimationFrame(()=>{
     const ratio = window.devicePixelRatio || 1;
@@ -595,25 +746,38 @@ function openSigModal(){
   });
 }
 document.getElementById('sig-clear').addEventListener('click', ()=> sigPad && sigPad.clear());
-document.getElementById('sig-cancel').addEventListener('click', ()=>{ sigModal.classList.add('hidden'); });
-document.getElementById('sig-use').addEventListener('click', ()=>{
-  if(!sigPad || sigPad.isEmpty()){ alert('Draw a signature first'); return; }
-  pendingSigDataUrl = sigPad.toDataURL('image/png');
+document.getElementById('sig-cancel').addEventListener('click', ()=>{
   sigModal.classList.add('hidden');
+  sigTargetMarker = null;
+});
+document.getElementById('sig-use').addEventListener('click', ()=>{
+  if(!sigPad || sigPad.isEmpty()){ alert('Draw first'); return; }
+  const dataUrl = sigPad.toDataURL('image/png');
+  sigModal.classList.add('hidden');
+
+  if(sigTargetMarker){
+    sigTargetMarker.dataUrl = dataUrl;
+    sigTargetMarker = null;
+    redrawMarkers();
+    return;
+  }
+  pendingSigDataUrl = dataUrl;
   placingMode = 'sig-place';
-  placingHint.style.display='block';
-  placingHint.textContent = 'Tap where the signature goes';
+  clearActiveTools();
+  placingHint.style.display = 'block';
+  placingHint.textContent = pendingIsInitials ? 'Tap where the initials go' : 'Tap where the signature goes';
 });
 
 function placeSignatureMarker(x,y){
-  const w = Math.min(pageW*0.35, 160);
-  const h = w*0.42;
+  const w = pendingIsInitials ? Math.min(pageW*0.16, 75) : Math.min(pageW*0.35, 160);
+  const h = w*0.5;
   const px = Math.max(0, x - w/2);
   const py = Math.max(0, y - h/2);
   markers.push({
     id: markerIdCounter++,
     page: currentPage,
     type:'sig',
+    subtype: pendingIsInitials ? 'initials' : 'signature',
     dataUrl: pendingSigDataUrl,
     xRatio: px/pageW,
     yRatio: py/pageH,
@@ -628,29 +792,61 @@ function redrawMarkers(){
   markerLayer.innerHTML = '';
   markers.filter(m=>m.page===currentPage).forEach(m=>{
     const el = document.createElement('div');
-    el.className = 'marker ' + (m.type==='text' ? 'text-marker' : 'sig-marker');
+    el.classList.add('marker');
+    let onTap = null;
+
     if(m.type==='text'){
+      const isEmpty = !m.text;
+      el.classList.add(isEmpty ? 'text-marker-empty' : 'text-marker');
       el.style.left = (m.xRatio*pageW)+'px';
       el.style.top = (m.yRatio*pageH)+'px';
-      el.style.fontSize = (m.fontRatio*pageH)+'px';
+      const fpx = m.fontRatio*pageH;
+      el.style.fontSize = fpx+'px';
       el.style.fontWeight = m.bold ? '700' : '400';
       el.style.fontStyle = m.italic ? 'italic' : 'normal';
-      el.textContent = m.text;
-    } else {
+      el.style.fontFamily = FONT_CSS[m.fontFamily] || FONT_CSS.helvetica;
+      if(isEmpty){
+        el.style.minWidth = Math.max(50, (m.wRatio||0.12)*pageW) + 'px';
+        el.style.minHeight = (fpx+8) + 'px';
+        el.textContent = m.placeholderLabel || 'Tap to fill';
+      } else {
+        el.textContent = m.text;
+      }
+      onTap = ()=> openTextInput(m.xRatio*pageW, m.yRatio*pageH, m);
+
+    } else if(m.type==='checkbox'){
+      el.classList.add('checkbox-marker');
       el.style.left = (m.xRatio*pageW)+'px';
       el.style.top = (m.yRatio*pageH)+'px';
       el.style.width = (m.wRatio*pageW)+'px';
       el.style.height = (m.hRatio*pageH)+'px';
-      const img = document.createElement('img');
-      img.src = m.dataUrl;
-      el.appendChild(img);
+      el.textContent = m.checked ? '✓' : '';
+      onTap = ()=>{ m.checked = !m.checked; redrawMarkers(); };
+
+    } else if(m.type==='sig'){
+      el.style.left = (m.xRatio*pageW)+'px';
+      el.style.top = (m.yRatio*pageH)+'px';
+      el.style.width = (m.wRatio*pageW)+'px';
+      el.style.height = (m.hRatio*pageH)+'px';
+      if(m.dataUrl){
+        el.classList.add('sig-marker');
+        const img = document.createElement('img');
+        img.src = m.dataUrl;
+        el.appendChild(img);
+      } else {
+        el.classList.add('sig-marker-empty');
+        el.textContent = m.subtype==='initials' ? 'Tap to initial' : 'Tap to sign';
+        onTap = ()=>{ sigTargetMarker = m; openSigModal(m.subtype==='initials'); };
+      }
     }
+
     const del = document.createElement('div');
     del.className='del';
     del.textContent='×';
-    del.addEventListener('click',(ev)=>{ ev.stopPropagation(); markers = markers.filter(mm=>mm.id!==m.id); redrawMarkers(); });
+    del.addEventListener('pointerdown', ev=> ev.stopPropagation());
+    del.addEventListener('click', ev=>{ ev.stopPropagation(); markers = markers.filter(mm=>mm.id!==m.id); redrawMarkers(); });
     el.appendChild(del);
-    const onTap = m.type==='text' ? ()=> openTextInput(m.xRatio*pageW, m.yRatio*pageH, m) : null;
+
     makeDraggable(el, m, onTap);
     markerLayer.appendChild(el);
   });
@@ -680,6 +876,162 @@ function makeDraggable(el, m, onTap){
   });
 }
 
+// ---------- auto-detect: real fillable AcroForm fields ----------
+async function detectFormFields(){
+  try{
+    const bytes = await currentFile.arrayBuffer();
+    const fdoc = await PDFLib.PDFDocument.load(bytes);
+    let form;
+    try{ form = fdoc.getForm(); } catch(e){ return; }
+    let fields = [];
+    try{ fields = form.getFields(); } catch(e){ fields = []; }
+    if(!fields || !fields.length) return;
+
+    const fpages = fdoc.getPages();
+
+    fields.forEach(field=>{
+      let widgets = [];
+      try{ widgets = field.acroField.getWidgets(); } catch(e){ widgets = []; }
+
+      widgets.forEach(widget=>{
+        let rect;
+        try{ rect = widget.getRectangle(); } catch(e){ return; }
+        if(!rect || !rect.width || !rect.height) return;
+
+        let pageIndex = 0;
+        try{
+          const pRef = widget.P ? widget.P() : undefined;
+          if(pRef){
+            const idx = fpages.findIndex(p => p.ref && pRef && p.ref.toString()===pRef.toString());
+            if(idx>=0) pageIndex = idx;
+          }
+        } catch(e){ /* fall back to page 0 */ }
+
+        const page = fpages[pageIndex];
+        if(!page) return;
+        const {width, height} = page.getSize();
+        if(!width || !height) return;
+
+        let name = '';
+        try{ name = field.getName(); } catch(e){}
+        const lower = (name||'').toLowerCase();
+        const isSig = lower.includes('sign') && !lower.includes('assign') && !lower.includes('design');
+        let isCheckbox = false;
+        try{ isCheckbox = typeof field.check === 'function'; } catch(e){}
+
+        const base = {
+          id: markerIdCounter++,
+          page: pageIndex+1,
+          detected: true,
+          fieldName: name,
+          xRatio: rect.x/width,
+          yRatio: (height - rect.y - rect.height)/height,
+          wRatio: rect.width/width,
+          hRatio: rect.height/height,
+        };
+
+        if(isSig){
+          markers.push(Object.assign(base, {type:'sig', dataUrl:null, subtype:'signature'}));
+        } else if(isCheckbox){
+          markers.push(Object.assign(base, {type:'checkbox', checked:false}));
+        } else {
+          markers.push(Object.assign(base, {
+            type:'text', text:'', bold:false, italic:false, fontFamily:'helvetica',
+            fontRatio: Math.max(9, Math.min(18, rect.height*0.55))/height,
+            placeholderLabel: name || 'Tap to fill'
+          }));
+        }
+      });
+    });
+
+    redrawMarkers();
+  } catch(err){
+    console.warn('Form field detection skipped:', err);
+  }
+}
+
+// ---------- auto-detect: blank lines on flat/scanned pages (beta) ----------
+function runDetectBlanks(){
+  if(!pdfjsDoc){ return; }
+  try{
+    const w = canvas.width, h = canvas.height;
+    if(!w || !h) return;
+    const imgData = ctx.getImageData(0,0,w,h).data;
+    const minRunLenPx = w*0.07;
+    const rawLines = [];
+
+    for(let y=0; y<h; y++){
+      let runStart = null;
+      for(let x=0; x<w; x++){
+        const idx = (y*w+x)*4;
+        const a = imgData[idx+3];
+        const gray = (imgData[idx]+imgData[idx+1]+imgData[idx+2])/3;
+        const isDark = a>10 && gray<160;
+        if(isDark){
+          if(runStart===null) runStart = x;
+        } else if(runStart!==null){
+          const len = x-runStart;
+          if(len>=minRunLenPx) rawLines.push({y, x1:runStart, x2:x});
+          runStart = null;
+        }
+      }
+      if(runStart!==null){
+        const len = w-runStart;
+        if(len>=minRunLenPx) rawLines.push({y, x1:runStart, x2:w});
+      }
+    }
+
+    if(!rawLines.length){
+      alert("No blank lines found on this page. Try a different page, or zoom in first for finer detection.");
+      return;
+    }
+
+    rawLines.sort((a,b)=>a.y-b.y);
+    const merged = [];
+    rawLines.forEach(ln=>{
+      const last = merged[merged.length-1];
+      if(last && (ln.y-last.yLast)<=4 && Math.max(ln.x1,last.x1) <= Math.min(ln.x2,last.x2)+30){
+        last.yLast = ln.y;
+        last.x1 = Math.min(last.x1, ln.x1);
+        last.x2 = Math.max(last.x2, ln.x2);
+      } else {
+        merged.push({yLast: ln.y, y: ln.y, x1: ln.x1, x2: ln.x2});
+      }
+    });
+
+    let added = 0;
+    merged.forEach(seg=>{
+      const lineY = seg.y;
+      const already = markers.some(m => m.page===currentPage &&
+        Math.abs((m.yRatio*h) - (lineY-18)) < 24 &&
+        Math.abs((m.xRatio*w) - seg.x1) < 40);
+      if(already) return;
+
+      const fontPx = 14;
+      markers.push({
+        id: markerIdCounter++,
+        page: currentPage,
+        type:'text',
+        text:'',
+        bold:false, italic:false, fontFamily:'helvetica',
+        detected:true,
+        placeholderLabel:'Tap to fill',
+        xRatio: seg.x1/w,
+        yRatio: Math.max(0, (lineY - fontPx*1.3))/h,
+        wRatio: (seg.x2-seg.x1)/w,
+        fontRatio: fontPx/h
+      });
+      added++;
+    });
+
+    redrawMarkers();
+    if(added===0) alert("Found lines on this page, but they're already covered by fields you placed.");
+  } catch(err){
+    console.warn(err);
+    alert('Blank-line detection hit a snag on this page — this feature is still experimental.');
+  }
+}
+
 // ---------- export ----------
 toolReview.addEventListener('click', doExport);
 
@@ -695,27 +1047,36 @@ async function doExport(){
 
   const bytes = await currentFile.arrayBuffer();
   const pdfDoc = await PDFLib.PDFDocument.load(bytes);
-  const fontRegular = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-  const fontBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
-  const fontItalic = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaOblique);
-  const fontBoldItalic = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBoldOblique);
-  function pickFont(m){
-    if(m.bold && m.italic) return fontBoldItalic;
-    if(m.bold) return fontBold;
-    if(m.italic) return fontItalic;
-    return fontRegular;
+
+  const embeddedFonts = {};
+  for(const fam of Object.keys(FONT_SPECS)){
+    embeddedFonts[fam] = {};
+    for(const variant of Object.keys(FONT_SPECS[fam])){
+      embeddedFonts[fam][variant] = await pdfDoc.embedFont(PDFLib.StandardFonts[FONT_SPECS[fam][variant]]);
+    }
   }
+  function pickFont(m){
+    const fam = embeddedFonts[m.fontFamily] ? m.fontFamily : 'helvetica';
+    const variant = (m.bold && m.italic) ? 'boldItalic' : m.bold ? 'bold' : m.italic ? 'italic' : 'reg';
+    return embeddedFonts[fam][variant];
+  }
+
   const pages = pdfDoc.getPages();
 
   for(const m of markers){
     const page = pages[m.page-1];
+    if(!page) continue;
     const {width, height} = page.getSize();
+
     if(m.type==='text'){
+      if(!m.text) continue;
       const fontSize = m.fontRatio*height;
       const x = m.xRatio*width;
       const y = height - (m.yRatio*height) - fontSize*0.8;
       page.drawText(m.text, {x, y, size:fontSize, font:pickFont(m), color:PDFLib.rgb(0.08,0.13,0.24)});
-    } else {
+
+    } else if(m.type==='sig'){
+      if(!m.dataUrl) continue;
       const pngBytes = dataUrlToBytes(m.dataUrl);
       const png = await pdfDoc.embedPng(pngBytes);
       const w = m.wRatio*width;
@@ -723,6 +1084,19 @@ async function doExport(){
       const x = m.xRatio*width;
       const y = height - (m.yRatio*height) - h;
       page.drawImage(png, {x, y, width:w, height:h});
+
+    } else if(m.type==='checkbox'){
+      const w = m.wRatio*width;
+      const h = m.hRatio*height;
+      const x = m.xRatio*width;
+      const y = height - (m.yRatio*height) - h;
+      if(!m.detected){
+        page.drawRectangle({x, y, width:w, height:h, borderColor:PDFLib.rgb(0.08,0.13,0.24), borderWidth:1});
+      }
+      if(m.checked){
+        page.drawLine({start:{x:x+2,y:y+2}, end:{x:x+w-2,y:y+h-2}, thickness:1.6, color:PDFLib.rgb(0.08,0.13,0.24)});
+        page.drawLine({start:{x:x+2,y:y+h-2}, end:{x:x+w-2,y:y+2}, thickness:1.6, color:PDFLib.rgb(0.08,0.13,0.24)});
+      }
     }
   }
 
