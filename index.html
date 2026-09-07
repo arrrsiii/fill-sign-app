@@ -137,15 +137,34 @@
   /* inline text input for placing text */
   #text-input-box{
     position:absolute;z-index:20;background:#fff;border:2px solid var(--signed);
-    border-radius:6px;display:flex;align-items:center;box-shadow:0 4px 14px rgba(0,0,0,0.25);
-    pointer-events:auto;
+    border-radius:8px;display:flex;flex-direction:column;box-shadow:0 4px 14px rgba(0,0,0,0.25);
+    pointer-events:auto;overflow:hidden;min-width:230px;
   }
+  #text-input-box .format-row{
+    display:flex;align-items:center;gap:4px;padding:6px 8px;background:var(--paper-dim);
+    border-bottom:1px solid var(--line);
+  }
+  #text-input-box .fmt-btn{
+    border:1px solid var(--line);background:#fff;border-radius:5px;width:28px;height:28px;
+    font-size:13px;cursor:pointer;color:var(--ink);
+  }
+  #text-input-box .fmt-btn.on{background:var(--signed);color:#fff;border-color:var(--signed);}
+  #text-input-box .size-btn{
+    border:1px solid var(--line);background:#fff;border-radius:5px;width:24px;height:24px;
+    font-size:14px;cursor:pointer;color:var(--ink);line-height:1;
+  }
+  #text-input-box .size-label{font-size:12px;color:var(--ink-soft);min-width:22px;text-align:center;}
+  #text-input-box .input-row{display:flex;align-items:center;}
   #text-input-box input{
-    border:none;outline:none;font-size:16px;padding:8px;min-width:120px;font-family:inherit;
+    border:none;outline:none;font-size:16px;padding:10px;min-width:140px;font-family:inherit;flex:1;
   }
-  #text-input-box button{
-    border:none;background:var(--signed);color:#fff;padding:8px 12px;height:100%;
-    font-weight:700;cursor:pointer;
+  #text-input-box .add-btn{
+    border:none;background:var(--signed);color:#fff;padding:0 14px;align-self:stretch;
+    font-weight:700;cursor:pointer;font-size:14px;
+  }
+  #text-input-box .del-btn{
+    border:none;background:none;color:var(--stamp);padding:0 10px;align-self:stretch;
+    font-weight:700;cursor:pointer;font-size:13px;
   }
 
   /* ---------- signature modal ---------- */
@@ -448,32 +467,96 @@ canvas.addEventListener('click', (e)=>{
   }
 });
 
-function openTextInput(x,y){
+function openTextInput(x, y, existingMarker){
+  const isEdit = !!existingMarker;
+  const state = {
+    bold: isEdit ? !!existingMarker.bold : false,
+    italic: isEdit ? !!existingMarker.italic : false,
+    fontPx: isEdit ? Math.round(existingMarker.fontRatio*pageH) : 16
+  };
+
   const box = document.createElement('div');
   box.id = 'text-input-box';
   box.style.left = x+'px';
   box.style.top = y+'px';
-  box.innerHTML = `<input type="text" placeholder="Type here…" /><button>Add</button>`;
+  box.innerHTML = `
+    <div class="format-row">
+      <button type="button" class="fmt-btn" id="fmt-bold" style="font-weight:700;">B</button>
+      <button type="button" class="fmt-btn" id="fmt-italic" style="font-style:italic;">I</button>
+      <span style="width:8px;"></span>
+      <button type="button" class="size-btn" id="size-down">－</button>
+      <span class="size-label" id="size-label">${state.fontPx}</span>
+      <button type="button" class="size-btn" id="size-up">＋</button>
+    </div>
+    <div class="input-row">
+      <input type="text" placeholder="Type here…" />
+      ${isEdit ? '<button type="button" class="del-btn" id="del-marker">Delete</button>' : ''}
+      <button type="button" class="add-btn" id="commit-btn">${isEdit ? 'Done' : 'Add'}</button>
+    </div>
+  `;
   wrapper.appendChild(box);
-  const input = box.querySelector('input');
-  input.focus();
 
-  let committed = false;
+  const input = box.querySelector('input');
+  const boldBtn = box.querySelector('#fmt-bold');
+  const italicBtn = box.querySelector('#fmt-italic');
+  const sizeLabel = box.querySelector('#size-label');
+
+  if(isEdit) input.value = existingMarker.text;
+
+  function applyPreview(){
+    input.style.fontWeight = state.bold ? '700' : '400';
+    input.style.fontStyle = state.italic ? 'italic' : 'normal';
+    input.style.fontSize = Math.max(12, state.fontPx) + 'px';
+    boldBtn.classList.toggle('on', state.bold);
+    italicBtn.classList.toggle('on', state.italic);
+    sizeLabel.textContent = state.fontPx;
+  }
+  applyPreview();
+  input.focus();
+  if(isEdit) input.select();
+
+  boldBtn.addEventListener('click', ()=>{ state.bold = !state.bold; applyPreview(); });
+  italicBtn.addEventListener('click', ()=>{ state.italic = !state.italic; applyPreview(); });
+  box.querySelector('#size-down').addEventListener('click', ()=>{ state.fontPx = Math.max(10, state.fontPx-2); applyPreview(); });
+  box.querySelector('#size-up').addEventListener('click', ()=>{ state.fontPx = Math.min(48, state.fontPx+2); applyPreview(); });
+
+  // keep the box fully on-screen
+  requestAnimationFrame(()=>{
+    const boxW = box.offsetWidth, boxH = box.offsetHeight;
+    let left = parseFloat(box.style.left), top = parseFloat(box.style.top);
+    if(left + boxW > pageW) left = Math.max(0, pageW - boxW);
+    if(top + boxH > pageH) top = Math.max(0, top - boxH);
+    box.style.left = left + 'px';
+    box.style.top = top + 'px';
+  });
+
+  let done = false;
   function commit(){
-    if(committed) return;
-    committed = true;
+    if(done) return;
+    done = true;
     const val = input.value.trim();
     if(val){
-      const fontPx = 16;
-      markers.push({
-        id: markerIdCounter++,
-        page: currentPage,
-        type:'text',
-        text: val,
-        xRatio: x/pageW,
-        yRatio: y/pageH,
-        fontRatio: fontPx/pageH
-      });
+      if(isEdit){
+        existingMarker.text = val;
+        existingMarker.bold = state.bold;
+        existingMarker.italic = state.italic;
+        existingMarker.fontRatio = state.fontPx/pageH;
+      } else {
+        markers.push({
+          id: markerIdCounter++,
+          page: currentPage,
+          type:'text',
+          text: val,
+          bold: state.bold,
+          italic: state.italic,
+          xRatio: x/pageW,
+          yRatio: y/pageH,
+          fontRatio: state.fontPx/pageH
+        });
+      }
+      redrawMarkers();
+    } else if(isEdit){
+      markers = markers.filter(mm=>mm.id!==existingMarker.id);
       redrawMarkers();
     }
     box.remove();
@@ -481,9 +564,23 @@ function openTextInput(x,y){
     toolText.classList.remove('active');
     placingHint.style.display='none';
   }
-  box.querySelector('button').addEventListener('click', commit);
+  function deleteAndClose(){
+    done = true;
+    markers = markers.filter(mm=>mm.id!==existingMarker.id);
+    redrawMarkers();
+    box.remove();
+  }
+
+  box.querySelector('#commit-btn').addEventListener('click', commit);
+  if(isEdit) box.querySelector('#del-marker').addEventListener('click', deleteAndClose);
   input.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter') commit(); });
-  input.addEventListener('blur', ()=> setTimeout(commit,150));
+  function outsideClick(ev){
+    if(!box.contains(ev.target)){
+      document.removeEventListener('pointerdown', outsideClick, true);
+      commit();
+    }
+  }
+  setTimeout(()=> document.addEventListener('pointerdown', outsideClick, true), 50);
 }
 
 // ---------- signature ----------
@@ -536,6 +633,8 @@ function redrawMarkers(){
       el.style.left = (m.xRatio*pageW)+'px';
       el.style.top = (m.yRatio*pageH)+'px';
       el.style.fontSize = (m.fontRatio*pageH)+'px';
+      el.style.fontWeight = m.bold ? '700' : '400';
+      el.style.fontStyle = m.italic ? 'italic' : 'normal';
       el.textContent = m.text;
     } else {
       el.style.left = (m.xRatio*pageW)+'px';
@@ -551,21 +650,23 @@ function redrawMarkers(){
     del.textContent='×';
     del.addEventListener('click',(ev)=>{ ev.stopPropagation(); markers = markers.filter(mm=>mm.id!==m.id); redrawMarkers(); });
     el.appendChild(del);
-    makeDraggable(el, m);
+    const onTap = m.type==='text' ? ()=> openTextInput(m.xRatio*pageW, m.yRatio*pageH, m) : null;
+    makeDraggable(el, m, onTap);
     markerLayer.appendChild(el);
   });
 }
 
-function makeDraggable(el, m){
-  let dragging=false, startX,startY, origLeft, origTop;
+function makeDraggable(el, m, onTap){
+  let dragging=false, startX,startY, origLeft, origTop, moved=false;
   el.addEventListener('pointerdown',(e)=>{
-    dragging=true; el.setPointerCapture(e.pointerId);
+    dragging=true; moved=false; el.setPointerCapture(e.pointerId);
     startX=e.clientX; startY=e.clientY;
     origLeft = parseFloat(el.style.left); origTop = parseFloat(el.style.top);
   });
   el.addEventListener('pointermove',(e)=>{
     if(!dragging) return;
     const dx = e.clientX-startX, dy=e.clientY-startY;
+    if(Math.abs(dx)>4 || Math.abs(dy)>4) moved = true;
     const newLeft = Math.min(Math.max(0,origLeft+dx), pageW-20);
     const newTop = Math.min(Math.max(0,origTop+dy), pageH-20);
     el.style.left = newLeft+'px';
@@ -573,7 +674,10 @@ function makeDraggable(el, m){
     m.xRatio = newLeft/pageW;
     m.yRatio = newTop/pageH;
   });
-  el.addEventListener('pointerup',()=>{ dragging=false; });
+  el.addEventListener('pointerup',()=>{
+    dragging=false;
+    if(!moved && onTap) onTap();
+  });
 }
 
 // ---------- export ----------
@@ -591,7 +695,16 @@ async function doExport(){
 
   const bytes = await currentFile.arrayBuffer();
   const pdfDoc = await PDFLib.PDFDocument.load(bytes);
-  const helv = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+  const fontRegular = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+  const fontBold = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+  const fontItalic = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaOblique);
+  const fontBoldItalic = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBoldOblique);
+  function pickFont(m){
+    if(m.bold && m.italic) return fontBoldItalic;
+    if(m.bold) return fontBold;
+    if(m.italic) return fontItalic;
+    return fontRegular;
+  }
   const pages = pdfDoc.getPages();
 
   for(const m of markers){
@@ -601,7 +714,7 @@ async function doExport(){
       const fontSize = m.fontRatio*height;
       const x = m.xRatio*width;
       const y = height - (m.yRatio*height) - fontSize*0.8;
-      page.drawText(m.text, {x, y, size:fontSize, font:helv, color:PDFLib.rgb(0.08,0.13,0.24)});
+      page.drawText(m.text, {x, y, size:fontSize, font:pickFont(m), color:PDFLib.rgb(0.08,0.13,0.24)});
     } else {
       const pngBytes = dataUrlToBytes(m.dataUrl);
       const png = await pdfDoc.embedPng(pngBytes);
