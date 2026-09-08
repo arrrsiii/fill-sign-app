@@ -27,6 +27,9 @@
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
+  @supports (height: 100dvh){
+    html,body{height:100dvh;}
+  }
   body{
     margin:0;
     font-family:var(--font-main);
@@ -855,7 +858,7 @@ function openTextInput(x, y, existingMarker){
       <button type="button" class="size-btn" id="size-up">＋</button>
     </div>
     <div class="input-row">
-      <input type="text" placeholder="Type here…" />
+      <input type="text" inputmode="text" autocomplete="off" autocapitalize="sentences" placeholder="Type here…" />
       ${isEdit ? '<button type="button" class="del-btn" id="del-marker">Delete</button>' : ''}
       <button type="button" class="add-btn" id="commit-btn">${isEdit ? 'Done' : 'Add'}</button>
     </div>
