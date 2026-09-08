@@ -27,6 +27,9 @@
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
+  @supports (height: 100svh){
+    html,body{height:100svh;}
+  }
   @supports (height: 100dvh){
     html,body{height:100dvh;}
   }
@@ -41,6 +44,12 @@
   button{font-family:inherit;}
   svg{display:block;}
   #app{height:100%;display:flex;flex-direction:column;}
+  @supports (height: 100svh){
+    #app{height:100svh;}
+  }
+  @supports (height: 100dvh){
+    #app{height:100dvh;}
+  }
 
   /* ---------- header ---------- */
   header{
@@ -691,63 +700,6 @@ zoomOutBtn.addEventListener('click', ()=>{
   const c = viewportCenter();
   zoomTo(zoomLevel-0.25, c.x, c.y);
 });
-
-// ---------- pinch-to-zoom ----------
-// Uses native Touch Events rather than Pointer Events: e.touches is always an
-// authoritative live list, so there is no risk of a stray/uncleared pointer
-// from an interrupted gesture silently breaking later single-finger taps.
-let pinchStartDist = null;
-let pinchStartZoom = 1;
-let pinchSmoothScale = 1;
-let pinchAnchorX = 0, pinchAnchorY = 0;
-
-function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
-function clampScaleForZoom(baseZoom, scale){
-  const minScale = 0.5/baseZoom;
-  const maxScale = 3/baseZoom;
-  return Math.min(maxScale, Math.max(minScale, scale));
-}
-
-pdfScroll.addEventListener('touchstart', (e)=>{
-  if(e.touches.length===2){
-    const t0=e.touches[0], t1=e.touches[1];
-    pinchStartDist = dist({x:t0.clientX,y:t0.clientY},{x:t1.clientX,y:t1.clientY});
-    pinchStartZoom = zoomLevel;
-    pinchSmoothScale = 1;
-    pinchAnchorX = (t0.clientX+t1.clientX)/2;
-    pinchAnchorY = (t0.clientY+t1.clientY)/2;
-    const rect = wrapper.getBoundingClientRect();
-    const originX = rect.width ? ((pinchAnchorX-rect.left)/rect.width)*100 : 50;
-    const originY = rect.height ? ((pinchAnchorY-rect.top)/rect.height)*100 : 50;
-    wrapper.style.transformOrigin = `${originX}% ${originY}%`;
-  }
-}, {passive:true});
-
-pdfScroll.addEventListener('touchmove', (e)=>{
-  if(e.touches.length===2 && pinchStartDist){
-    const t0=e.touches[0], t1=e.touches[1];
-    const d = dist({x:t0.clientX,y:t0.clientY},{x:t1.clientX,y:t1.clientY});
-    const rawScale = d/pinchStartDist;
-    const smoothed = pinchSmoothScale*0.7 + rawScale*0.3;
-    pinchSmoothScale = clampScaleForZoom(pinchStartZoom, smoothed);
-    const targetZoom = pinchStartZoom*pinchSmoothScale;
-    wrapper.style.transform = `scale(${targetZoom/zoomLevel})`;
-    e.preventDefault();
-  }
-}, {passive:false});
-
-function endPinchTouch(e){
-  if(pinchStartDist!==null && e.touches.length<2){
-    const newZoom = pinchStartZoom*pinchSmoothScale;
-    pinchStartDist = null;
-    wrapper.style.transform = '';
-    if(Math.abs(newZoom-zoomLevel)>0.02){
-      zoomTo(newZoom, pinchAnchorX, pinchAnchorY);
-    }
-  }
-}
-pdfScroll.addEventListener('touchend', endPinchTouch);
-pdfScroll.addEventListener('touchcancel', endPinchTouch);
 
 // ---------- tool row ----------
 function clearActiveTools(){
