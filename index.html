@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -731,12 +733,7 @@ document.getElementById('tool-date').addEventListener('click', (e)=> setActiveTo
 document.getElementById('tool-checkbox').addEventListener('click', (e)=> setActiveTool('checkbox', e.currentTarget));
 document.getElementById('tool-detect').addEventListener('click', ()=> runDetectBlanks());
 
-canvas.addEventListener('click', (e)=>{
-  if(!placingMode) return;
-  const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-
+function handleCanvasTap(x, y){
   if(placingMode==='text'){
     openTextInput(x,y);
   } else if(placingMode==='date'){
@@ -749,6 +746,28 @@ canvas.addEventListener('click', (e)=>{
     placeSignatureMarker(x,y);
     placingMode = null; clearActiveTools();
   }
+}
+
+let lastTouchTapTime = 0;
+canvas.addEventListener('touchend', (e)=>{
+  if(!placingMode) return;
+  if(e.changedTouches.length!==1) return;
+  const touch = e.changedTouches[0];
+  const rect = canvas.getBoundingClientRect();
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+  lastTouchTapTime = Date.now();
+  e.preventDefault();
+  handleCanvasTap(x, y);
+}, {passive:false});
+
+canvas.addEventListener('click', (e)=>{
+  if(!placingMode) return;
+  if(Date.now() - lastTouchTapTime < 500) return; // already handled by touchend above
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  handleCanvasTap(x, y);
 });
 
 function placeDateMarker(x,y){
