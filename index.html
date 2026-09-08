@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Fill & Sign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>TapSign</title>
 <style>
   :root{
     --paper:#ffffff;
@@ -13,22 +16,25 @@
     --line:#dfe1e6;
     --accent:#2f80ed;
     --accent-dim:#e9f3fd;
+    --nav:#e53935;
+    --nav-dim:#fdeceb;
+    --muted-icon:#8a94a3;
     --danger:#c0392b;
-    --danger-dim:#fbeceb;
     --signed:#1f7a5c;
     --signed-dim:#e6f2ee;
     --radius:10px;
+    --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
   body{
     margin:0;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-family:var(--font-main);
     background:var(--paper-dim);
     color:var(--ink);
     overflow:hidden;
   }
-  h1,h2,h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;font-weight:600;margin:0;}
+  h1,h2,h3{font-family:var(--font-main);font-weight:600;margin:0;}
   button{font-family:inherit;}
   svg{display:block;}
   #app{height:100%;display:flex;flex-direction:column;}
@@ -44,7 +50,12 @@
     justify-content:space-between;
     min-height:52px;
   }
-  header .doc-name{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%;}
+  header .brand{display:flex;align-items:center;gap:7px;overflow:hidden;max-width:55%;}
+  header .header-logo{
+    width:20px;height:20px;border-radius:6px;background:var(--accent-dim);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  }
+  header .doc-name{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   header .doc-name.placeholder{color:var(--ink-soft);font-weight:400;}
   header .page-indicator{font-size:13px;color:var(--ink-soft);}
   header .back-btn{background:none;border:none;color:var(--accent);font-size:15px;padding:4px 0;cursor:pointer;}
@@ -54,9 +65,16 @@
   .screen.active{display:flex;}
 
   /* ---------- home ---------- */
-  #screen-home{align-items:stretch;justify-content:flex-start;padding:28px 20px;overflow-y:auto;}
-  .home-hero{margin-bottom:28px;}
-  .home-hero h1{font-size:26px;line-height:1.25;color:var(--ink);}
+  #screen-home{align-items:center;justify-content:flex-start;padding:36px 20px 28px;overflow-y:auto;}
+  .home-content{width:100%;max-width:400px;}
+  .brand-block{text-align:center;margin-bottom:30px;}
+  .brand-logo{
+    width:56px;height:56px;border-radius:16px;background:var(--accent-dim);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 12px;
+  }
+  .brand-name{font-weight:700;font-size:19px;color:var(--ink);letter-spacing:-0.01em;}
+  .home-hero{text-align:center;margin-bottom:28px;}
+  .home-hero h1{font-size:24px;line-height:1.3;color:var(--ink);}
   .home-hero p{margin:8px 0 0;color:var(--ink-soft);font-size:14px;line-height:1.5;}
   .upload-btn{
     display:flex;align-items:center;justify-content:center;gap:10px;
@@ -64,7 +82,7 @@
     padding:18px;font-size:16px;font-weight:600;cursor:pointer;width:100%;
   }
   .upload-btn:active{opacity:0.85;}
-  .recents{margin-top:32px;}
+  .recents{margin-top:32px;text-align:left;}
   .recents h2{font-size:13px;text-transform:none;color:var(--ink-soft);font-weight:600;margin-bottom:10px;}
   .recent-item{
     display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);
@@ -97,16 +115,16 @@
     white-space:nowrap;
   }
   .marker.text-marker-empty{
-    border:1.5px dashed var(--accent);
-    background:rgba(47,128,237,0.06);
+    border:1px dashed rgba(47,128,237,0.35);
+    background:rgba(47,128,237,0.04);
     border-radius:5px;
     padding:3px 8px;
-    color:var(--accent);
+    color:rgba(47,128,237,0.8);
     font-style:italic;
     white-space:nowrap;
   }
   .marker.checkbox-marker{
-    border:1.5px solid var(--accent);
+    border:1px solid rgba(47,128,237,0.5);
     border-radius:4px;
     background:#fff;
     justify-content:center;
@@ -120,16 +138,18 @@
   }
   .marker.sig-marker-empty{
     justify-content:center;
-    background:rgba(47,128,237,0.06);
-    color:var(--accent);
-    font-size:12px;
+    background:rgba(47,128,237,0.04);
+    border:1px dashed rgba(47,128,237,0.35);
+    border-radius:6px;
+    color:rgba(47,128,237,0.8);
+    font-size:11px;
     font-weight:600;
     text-align:center;
   }
   .marker.sig-marker img{width:100%;height:100%;object-fit:contain;pointer-events:none;}
   .marker .del{
     position:absolute;top:-9px;right:-9px;width:18px;height:18px;border-radius:50%;
-    background:var(--danger);color:#fff;font-size:12px;line-height:18px;text-align:center;
+    background:var(--muted-icon);color:#fff;font-size:12px;line-height:18px;text-align:center;
     cursor:pointer;font-weight:700;
     pointer-events:auto;
   }
@@ -139,6 +159,13 @@
     z-index:5;white-space:nowrap;box-shadow:0 4px 10px rgba(0,0,0,0.2);
     pointer-events:none;
   }
+  #toast{
+    position:fixed;left:50%;bottom:96px;transform:translate(-50%,10px);
+    background:var(--ink);color:#fff;padding:10px 16px;border-radius:20px;font-size:13px;
+    opacity:0;transition:opacity 0.25s ease, transform 0.25s ease;pointer-events:none;z-index:60;
+    max-width:82%;text-align:center;
+  }
+  #toast.show{opacity:1;transform:translate(-50%,0);}
   .page-nav{
     flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;
     padding:8px 12px;background:var(--paper);border-top:1px solid var(--line);font-size:13px;
@@ -150,7 +177,7 @@
   .zoom-controls button{width:30px;height:30px;border-radius:6px;border:1px solid var(--line);background:var(--paper-dim);font-size:16px;line-height:1;cursor:pointer;}
   #zoom-label{font-size:12px;color:var(--ink-soft);min-width:38px;text-align:center;}
 
-  /* ---------- tool row ---------- */
+  /* ---------- tool row (bottom navigation) ---------- */
   .tool-row{
     flex:0 0 auto;display:flex;gap:16px;overflow-x:auto;padding:10px 16px;
     background:var(--paper);border-top:1px solid var(--line);-webkit-overflow-scrolling:touch;
@@ -160,14 +187,14 @@
     flex:0 0 auto;cursor:pointer;min-width:54px;
   }
   .tool-circle{
-    width:44px;height:44px;border-radius:50%;background:var(--accent-dim);color:var(--accent);
+    width:44px;height:44px;border-radius:50%;background:var(--nav-dim);color:var(--nav);
     display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;
   }
-  .tool-icon-btn.active .tool-circle{background:var(--accent);color:#fff;}
+  .tool-icon-btn.active .tool-circle{background:var(--nav);color:#fff;}
   .tool-label{font-size:10.5px;color:var(--ink-soft);white-space:nowrap;}
   .review-btn{
     flex:0 0 auto;display:block;width:calc(100% - 24px);margin:0 12px calc(10px + env(safe-area-inset-bottom));
-    background:var(--accent);color:#fff;border:none;border-radius:var(--radius);
+    background:var(--nav);color:#fff;border:none;border-radius:var(--radius);
     padding:14px;font-weight:700;font-size:15px;cursor:pointer;
   }
 
@@ -244,25 +271,38 @@
 
   <header>
     <button class="back-btn" id="back-btn" style="visibility:hidden;">‹ Back</button>
-    <span class="doc-name placeholder" id="doc-name">Fill &amp; Sign</span>
+    <div class="brand">
+      <span class="header-logo">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/><path d="M3 21.5c2-2 3 2 5 0c2-2 3 2 5 0" stroke-width="1.6"/></svg>
+      </span>
+      <span class="doc-name placeholder" id="doc-name">TapSign</span>
+    </div>
     <span class="page-indicator" id="page-indicator"></span>
   </header>
 
   <main>
     <!-- HOME -->
     <section id="screen-home" class="screen active">
-      <div class="home-hero">
-        <h1>Fill and sign, right from your phone</h1>
-        <p>Import a PDF, tap in your details, sign with your finger, and send it back out — no laptop required.</p>
-      </div>
-      <button class="upload-btn" id="upload-btn">
-        <span>📄</span> Upload a PDF
-      </button>
-      <input type="file" id="file-input" accept="application/pdf">
-      <div class="recents">
-        <h2>Recent</h2>
-        <div class="recent-empty" id="recent-empty">Nothing yet — documents you open this session will show up here.</div>
-        <div id="recent-list"></div>
+      <div class="home-content">
+        <div class="brand-block">
+          <div class="brand-logo">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/><path d="M3 21.5c2-2 3 2 5 0c2-2 3 2 5 0" stroke-width="1.5"/></svg>
+          </div>
+          <div class="brand-name">TapSign</div>
+        </div>
+        <div class="home-hero">
+          <h1>Fill and sign, right from your phone</h1>
+          <p>Import a PDF, tap in your details, sign with your finger, and send it back out — no laptop required.</p>
+        </div>
+        <button class="upload-btn" id="upload-btn">
+          <span>📄</span> Upload a PDF
+        </button>
+        <input type="file" id="file-input" accept="application/pdf">
+        <div class="recents">
+          <h2>Recent</h2>
+          <div class="recent-empty" id="recent-empty">Nothing yet — documents you open this session will show up here.</div>
+          <div id="recent-list"></div>
+        </div>
       </div>
     </section>
 
@@ -372,6 +412,16 @@ const FONT_SPECS = {
   courier:{reg:'Courier',bold:'CourierBold',italic:'CourierOblique',boldItalic:'CourierBoldOblique'}
 };
 
+// ---------- toast ----------
+function showToast(msg){
+  let t = document.getElementById('toast');
+  if(!t){ t=document.createElement('div'); t.id='toast'; document.body.appendChild(t); }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=> t.classList.remove('show'), 3200);
+}
+
 // ---------- state ----------
 let currentFile = null;
 let pdfjsDoc = null;
@@ -381,7 +431,7 @@ let markers = [];
 let pendingSigDataUrl = null;
 let pendingIsInitials = false;
 let sigTargetMarker = null;
-let placingMode = null;    // 'text' | 'date' | 'checkbox' | 'sig-place' | null
+let placingMode = null;
 let markerIdCounter = 1;
 let sigPad = null;
 let recentDocs = [];
@@ -411,7 +461,6 @@ const nextPageBtn = document.getElementById('next-page');
 const zoomInBtn = document.getElementById('zoom-in');
 const zoomOutBtn = document.getElementById('zoom-out');
 const zoomLabel = document.getElementById('zoom-label');
-const toolText = document.getElementById('tool-text');
 const toolReview = document.getElementById('tool-review');
 const sigModal = document.getElementById('sig-modal');
 const sigModalTitle = document.getElementById('sig-modal-title');
@@ -457,7 +506,6 @@ async function openFile(f){
   showScreen('editor');
   await renderPage(1);
 
-  // best-effort: auto-detect real fillable form fields, if this PDF has any
   detectFormFields();
 }
 
@@ -794,6 +842,7 @@ function redrawMarkers(){
     const el = document.createElement('div');
     el.classList.add('marker');
     let onTap = null;
+    let showDel = !m.detected;
 
     if(m.type==='text'){
       const isEmpty = !m.text;
@@ -811,6 +860,7 @@ function redrawMarkers(){
         el.textContent = m.placeholderLabel || 'Tap to fill';
       } else {
         el.textContent = m.text;
+        showDel = true;
       }
       onTap = ()=> openTextInput(m.xRatio*pageW, m.yRatio*pageH, m);
 
@@ -821,6 +871,7 @@ function redrawMarkers(){
       el.style.width = (m.wRatio*pageW)+'px';
       el.style.height = (m.hRatio*pageH)+'px';
       el.textContent = m.checked ? '✓' : '';
+      if(m.checked) showDel = true;
       onTap = ()=>{ m.checked = !m.checked; redrawMarkers(); };
 
     } else if(m.type==='sig'){
@@ -830,6 +881,7 @@ function redrawMarkers(){
       el.style.height = (m.hRatio*pageH)+'px';
       if(m.dataUrl){
         el.classList.add('sig-marker');
+        showDel = true;
         const img = document.createElement('img');
         img.src = m.dataUrl;
         el.appendChild(img);
@@ -840,12 +892,19 @@ function redrawMarkers(){
       }
     }
 
-    const del = document.createElement('div');
-    del.className='del';
-    del.textContent='×';
-    del.addEventListener('pointerdown', ev=> ev.stopPropagation());
-    del.addEventListener('click', ev=>{ ev.stopPropagation(); markers = markers.filter(mm=>mm.id!==m.id); redrawMarkers(); });
-    el.appendChild(del);
+    if(showDel){
+      const del = document.createElement('div');
+      del.className='del';
+      del.textContent='×';
+      del.addEventListener('pointerdown', ev=> ev.stopPropagation());
+      del.addEventListener('pointerup', ev=> ev.stopPropagation());
+      del.addEventListener('click', ev=>{
+        ev.stopPropagation();
+        markers = markers.filter(mm=>mm.id!==m.id);
+        redrawMarkers();
+      });
+      el.appendChild(del);
+    }
 
     makeDraggable(el, m, onTap);
     markerLayer.appendChild(el);
@@ -888,6 +947,7 @@ async function detectFormFields(){
     if(!fields || !fields.length) return;
 
     const fpages = fdoc.getPages();
+    let detectedCount = 0;
 
     fields.forEach(field=>{
       let widgets = [];
@@ -905,7 +965,7 @@ async function detectFormFields(){
             const idx = fpages.findIndex(p => p.ref && pRef && p.ref.toString()===pRef.toString());
             if(idx>=0) pageIndex = idx;
           }
-        } catch(e){ /* fall back to page 0 */ }
+        } catch(e){}
 
         const page = fpages[pageIndex];
         if(!page) return;
@@ -941,10 +1001,14 @@ async function detectFormFields(){
             placeholderLabel: name || 'Tap to fill'
           }));
         }
+        detectedCount++;
       });
     });
 
     redrawMarkers();
+    if(detectedCount>0){
+      showToast(`Found ${detectedCount} field${detectedCount===1?'':'s'} — tap any highlighted box to fill it in`);
+    }
   } catch(err){
     console.warn('Form field detection skipped:', err);
   }
@@ -1025,7 +1089,11 @@ function runDetectBlanks(){
     });
 
     redrawMarkers();
-    if(added===0) alert("Found lines on this page, but they're already covered by fields you placed.");
+    if(added>0){
+      showToast(`Found ${added} blank line${added===1?'':'s'} on this page`);
+    } else {
+      alert("Found lines on this page, but they're already covered by fields you placed.");
+    }
   } catch(err){
     console.warn(err);
     alert('Blank-line detection hit a snag on this page — this feature is still experimental.');
@@ -1154,7 +1222,7 @@ async function doExport(){
     } catch(err){ /* user cancelled share */ }
   });
   document.getElementById('btn-restart').addEventListener('click', ()=>{
-    currentFile=null; markers=[]; docNameEl.textContent='Fill & Sign'; docNameEl.classList.add('placeholder');
+    currentFile=null; markers=[]; docNameEl.textContent='TapSign'; docNameEl.classList.add('placeholder');
     pageIndicatorEl.textContent=''; showScreen('home');
   });
 }
