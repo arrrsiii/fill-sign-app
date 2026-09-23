@@ -1385,6 +1385,57 @@ zoomOutBtn.addEventListener('click', ()=>{
   zoomTo(zoomLevel-0.25, c.x, c.y);
 });
 
+// ---------- pinch to zoom ----------
+// While pinching, only a cheap CSS transform is applied (no re-render, no flash/jitter).
+// The real re-render happens once, via the existing zoomTo(), when the fingers lift.
+let pinchState = null;
+function touchDist(t0, t1){ return Math.hypot(t0.clientX-t1.clientX, t0.clientY-t1.clientY); }
+function touchMid(t0, t1){ return {x:(t0.clientX+t1.clientX)/2, y:(t0.clientY+t1.clientY)/2}; }
+
+pdfScroll.addEventListener('touchstart', (e)=>{
+  if(e.touches.length === 2){
+    const [t0,t1] = e.touches;
+    const rect = wrapper.getBoundingClientRect();
+    const mid = touchMid(t0,t1);
+    pinchState = {
+      startDist: touchDist(t0,t1),
+      startZoom: zoomLevel,
+      liveZoom: zoomLevel,
+      originX: mid.x - rect.left,
+      originY: mid.y - rect.top,
+      midX: mid.x,
+      midY: mid.y,
+    };
+    wrapper.style.transformOrigin = pinchState.originX+'px '+pinchState.originY+'px';
+    e.preventDefault();
+  }
+}, {passive:false});
+
+pdfScroll.addEventListener('touchmove', (e)=>{
+  if(pinchState && e.touches.length === 2){
+    const [t0,t1] = e.touches;
+    const dist = touchDist(t0,t1);
+    if(dist > 0 && pinchState.startDist > 0){
+      const liveZoom = Math.min(3, Math.max(0.5, pinchState.startZoom * (dist/pinchState.startDist)));
+      pinchState.liveZoom = liveZoom;
+      wrapper.style.transform = 'scale('+(liveZoom/pinchState.startZoom)+')';
+    }
+    e.preventDefault();
+  }
+}, {passive:false});
+
+function endPinch(){
+  if(!pinchState) return;
+  const {liveZoom, midX, midY} = pinchState;
+  wrapper.style.transform = '';
+  pinchState = null;
+  if(Math.abs(liveZoom - zoomLevel) > 0.01) zoomTo(liveZoom, midX, midY);
+}
+pdfScroll.addEventListener('touchend', (e)=>{
+  if(pinchState && e.touches.length < 2) endPinch();
+}, {passive:false});
+pdfScroll.addEventListener('touchcancel', endPinch, {passive:false});
+
 // ---------- tool row ----------
 function clearActiveTools(){
   document.querySelectorAll('.tool-icon-btn').forEach(b=>b.classList.remove('active'));
